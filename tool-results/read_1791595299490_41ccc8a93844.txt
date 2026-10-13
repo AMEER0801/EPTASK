@@ -1,0 +1,456 @@
+     1→"""Build the EPtask integration report body PDF (ReportLab, no cover).
+     2→
+     3→Chapter numbering plan (mandatory):
+     4→| Outline | Type    | Chapter | Title                                    |
+     5→|---------|---------|---------|------------------------------------------|
+     6→| 1       | cover   | -       | Cover (separate HTML/Playwright PDF)     |
+     7→| 2       | toc     | -       | Contents                                 |
+     8→| 3       | content | 1       | Executive summary                        |
+     9→| 4       | content | 2       | Sources and integration map              |
+    10→| 5       | content | 3       | System architecture                      |
+    11→| 6       | content | 4       | Fidelity evidence                        |
+    12→| 7       | content | 5       | Interface redesign                       |
+    13→| 8       | content | 6       | Verification and test results            |
+    14→| 9       | content | 7       | Measured performance                     |
+    15→| 10      | content | 8       | Limitations and remaining requirements   |
+    16→"""
+    17→import os
+    18→import sys
+    19→
+    20→from reportlab.lib import colors
+    21→from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+    22→from reportlab.lib.pagesizes import A4
+    23→from reportlab.lib.styles import ParagraphStyle
+    24→from reportlab.lib.units import inch
+    25→from reportlab.pdfbase import pdfmetrics
+    26→from reportlab.pdfbase.ttfonts import TTFont
+    27→from reportlab.pdfbase.pdfmetrics import registerFontFamily
+    28→from reportlab.platypus import (CondPageBreak, KeepTogether, PageBreak, Paragraph,
+    29→                                SimpleDocTemplate, Spacer, Table, TableStyle)
+    30→
+    31→PDF_SKILL = "/home/z/my-project/skills/pdf"
+    32→sys.path.insert(0, os.path.join(PDF_SKILL, "scripts"))
+    33→from pdf import install_font_fallback  # noqa: E402
+    34→
+    35→FONT_DIR = "/usr/share/fonts"
+    36→pdfmetrics.registerFont(TTFont("NotoSerifSC", f"{FONT_DIR}/truetype/noto-serif-sc/NotoSerifSC-Regular.ttf"))
+    37→pdfmetrics.registerFont(TTFont("NotoSerifSC-Bold", f"{FONT_DIR}/truetype/noto-serif-sc/NotoSerifSC-Bold.ttf"))
+    38→pdfmetrics.registerFont(TTFont("FreeSerif", f"{FONT_DIR}/truetype/freefont/FreeSerif.ttf"))
+    39→pdfmetrics.registerFont(TTFont("FreeSerif-Bold", f"{FONT_DIR}/truetype/freefont/FreeSerifBold.ttf"))
+    40→pdfmetrics.registerFont(TTFont("FreeSerif-Italic", f"{FONT_DIR}/truetype/freefont/FreeSerifItalic.ttf"))
+    41→pdfmetrics.registerFont(TTFont("FreeSerif-BoldItalic", f"{FONT_DIR}/truetype/freefont/FreeSerifBoldItalic.ttf"))
+    42→pdfmetrics.registerFont(TTFont("DejaVuSans", f"{FONT_DIR}/truetype/dejavu/DejaVuSansMono.ttf"))
+    43→registerFontFamily("NotoSerifSC", normal="NotoSerifSC", bold="NotoSerifSC-Bold")
+    44→registerFontFamily("FreeSerif", normal="FreeSerif", bold="FreeSerif-Bold",
+    45→                   italic="FreeSerif-Italic", boldItalic="FreeSerif-BoldItalic")
+    46→install_font_fallback()
+    47→
+    48→# ---- cascade palette (design_engine palette-cascade --intent cold --mode minimal) ----
+    49→PAGE_BG = colors.HexColor("#eff0f1")
+    50→CARD_BG = colors.HexColor("#e6eaec")
+    51→TABLE_STRIPE = colors.HexColor("#e8ebed")
+    52→HEADER_FILL = colors.HexColor("#3b5664")
+    53→BORDER = colors.HexColor("#c5cdd1")
+    54→ACCENT = colors.HexColor("#1b6d97")
+    55→TEXT_PRIMARY = colors.HexColor("#1b1d1e")
+    56→TEXT_MUTED = colors.HexColor("#858b8e")
+    57→SEM_SUCCESS = colors.HexColor("#4f8662")
+    58→
+    59→MARGIN = 0.9 * inch
+    60→PAGE_W, PAGE_H = A4
+    61→AVAIL_W = PAGE_W - 2 * MARGIN
+    62→
+    63→OUT = "/home/z/my-project/workspace/report_body.pdf"
+    64→
+    65→# ---------------------------------------------------------------- styles
+    66→body = ParagraphStyle("Body", fontName="FreeSerif", fontSize=10.5, leading=16,
+    67→                      alignment=TA_JUSTIFY, textColor=TEXT_PRIMARY, spaceAfter=8)
+    68→h1 = ParagraphStyle("H1", fontName="FreeSerif", fontSize=19, leading=24,
+    69→                    textColor=HEADER_FILL, spaceBefore=18, spaceAfter=10)
+    70→h2 = ParagraphStyle("H2", fontName="FreeSerif", fontSize=14, leading=19,
+    71→                    textColor=HEADER_FILL, spaceBefore=12, spaceAfter=6)
+    72→cap = ParagraphStyle("Cap", fontName="FreeSerif", fontSize=9, leading=12,
+    73→                     alignment=TA_CENTER, textColor=TEXT_MUTED, spaceBefore=3, spaceAfter=6)
+    74→th = ParagraphStyle("TH", fontName="FreeSerif", fontSize=9.5, leading=12.5,
+    75→                    textColor=colors.white, alignment=TA_LEFT)
+    76→td_ = ParagraphStyle("TD", fontName="FreeSerif", fontSize=9.5, leading=12.5,
+    77→                     textColor=TEXT_PRIMARY, alignment=TA_LEFT)
+    78→td_mono = ParagraphStyle("TDm", fontName="DejaVuSans", fontSize=8.2, leading=11,
+    79→                         textColor=TEXT_PRIMARY, alignment=TA_LEFT)
+    80→toc_h = ParagraphStyle("TocH", fontName="FreeSerif", fontSize=19, leading=24,
+    81→                       textColor=HEADER_FILL, spaceAfter=14)
+    82→quote = ParagraphStyle("Quote", fontName="FreeSerif-Italic", fontSize=10.5, leading=16,
+    83→                       leftIndent=24, textColor=TEXT_PRIMARY, spaceAfter=8,
+    84→                       borderPadding=(0, 0, 0, 8))
+    85→
+    86→# ---------------------------------------------------------------- TOC machinery
+    87→from reportlab.platypus.tableofcontents import TableOfContents  # noqa: E402
+    88→
+    89→
+    90→class TocDocTemplate(SimpleDocTemplate):
+    91→    def afterFlowable(self, flowable):
+    92→        if hasattr(flowable, "bookmark_name"):
+    93→            level = flowable.bookmark_level
+    94→            text = flowable.bookmark_text
+    95→            display_page = max(1, self.page - 1)  # body pages display 1-based after the TOC page
+    96→            key = flowable.bookmark_key
+    97→            self.notify("TOCEntry", (level, text, display_page, key))  # 4-tuple -> clickable links
+    98→            self.canv.bookmarkPage(key)
+    99→            self.canv.addOutlineEntry(text, key, level=level, closed=False)
+   100→
+   101→
+   102→def head(text, level=0):
+   103→    key = f"h{level}-{abs(hash(text)) % 99999}"
+   104→    style = h1 if level == 0 else h2
+   105→    p = Paragraph(f'<a name="{key}"/><b>{text}</b>', style)
+   106→    p.bookmark_name = key
+   107→    p.bookmark_level = level
+   108→    p.bookmark_text = text
+   109→    p.bookmark_key = key
+   110→    return p
+   111→
+   112→
+   113→def footer(canvas, doc):
+   114→    canvas.saveState()
+   115→    canvas.setFont("FreeSerif", 9)
+   116→    canvas.setFillColor(TEXT_MUTED)
+   117→    if doc.page == 1:
+   118→        label = "i"                      # front matter (contents page)
+   119→    else:
+   120→        label = str(doc.page - 1)        # body resets to arabic 1
+   121→    canvas.drawCentredString(PAGE_W / 2, 0.5 * inch, label)
+   122→    canvas.setFont("FreeSerif-Italic", 8)
+   123→    canvas.drawRightString(PAGE_W - MARGIN, 0.5 * inch, "EPtask Ops Console - Integration Report")
+   124→    canvas.restoreState()
+   125→
+   126→
+   127→MAX_KEEP = PAGE_H * 0.4
+   128→
+   129→
+   130→def safe_keep(elements):
+   131→    total = 0
+   132→    for el in elements:
+   133→        w, hgt = el.wrap(AVAIL_W, PAGE_H)
+   134→        total += hgt
+   135→    if total <= MAX_KEEP:
+   136→        return [KeepTogether(elements)]
+   137→    if len(elements) >= 2:
+   138→        return [KeepTogether(elements[:2])] + list(elements[2:])
+   139→    return list(elements)
+   140→
+   141→
+   142→def make_table(header, rows, widths, mono_cols=(), stripe_from=1):
+   143→    data = [[Paragraph(f"<b>{c}</b>", th) for c in header]]
+   144→    for r_i, row in enumerate(rows):
+   145→        cells = []
+   146→        for c_i, c in enumerate(row):
+   147→            st = td_mono if c_i in mono_cols else td_
+   148→            cells.append(Paragraph(str(c), st))
+   149→        data.append(cells)
+   150→    scale = min(1.0, AVAIL_W / sum(widths))
+   151→    widths = [w * scale for w in widths]
+   152→    t = Table(data, colWidths=widths, hAlign="CENTER", repeatRows=1)
+   153→    style = [
+   154→        ("BACKGROUND", (0, 0), (-1, 0), HEADER_FILL),
+   155→        ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
+   156→        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+   157→        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+   158→        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+   159→        ("TOPPADDING", (0, 0), (-1, -1), 5),
+   160→        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+   161→    ]
+   162→    for i in range(stripe_from, len(data)):
+   163→        if (i - stripe_from) % 2 == 1:
+   164→            style.append(("BACKGROUND", (0, i), (-1, i), TABLE_STRIPE))
+   165→    t.setStyle(TableStyle(style))
+   166→    return t
+   167→
+   168→
+   169→# ---------------------------------------------------------------- content
+   170→story = []
+   171→
+   172→toc = TableOfContents()
+   173→toc.levelStyles = [
+   174→    ParagraphStyle("TOC1", fontName="FreeSerif", fontSize=11, leading=18, leftIndent=6, textColor=TEXT_PRIMARY),
+   175→    ParagraphStyle("TOC2", fontName="FreeSerif", fontSize=10, leading=15, leftIndent=22, textColor=TEXT_MUTED),
+   176→]
+   177→story.append(Paragraph("<b>Contents</b>", toc_h))
+   178→story.append(toc)
+   179→story.append(PageBreak())
+   180→
+   181→# ================================================================ 1
+   182→story.extend(safe_keep([
+   183→    head("1. Executive summary"),
+   184→    Paragraph(
+   185→        "This report documents the transformation of two research artifacts - a static Three.js "
+   186→        "demonstration that replayed pre-recorded simulations, and the EPtask V7.1 executed notebook "
+   187→        "that produced those simulations - into a single live application. The delivered system is an "
+   188→        "operations console: a Next.js 16 frontend over a Python FastAPI service that executes the "
+   189→        "notebook's original modules on every request. Nothing visible on the simulation pages is "
+   190→        "pre-computed; each launched run is computed at request time, and the repository's tests prove "
+   191→        "that the live outputs are identical to the notebook's recorded ones.", body),
+   192→]))
+   193→story.append(Paragraph(
+   194→    "The integration preserves the demo's strongest asset - its 3D situation map of the Trishuli "
+   195→    "valley corridor - while removing its embedded 7.2 MB dataset, decorative bloom effects, and "
+   196→    "scripted story machinery. The notebook's strongest assets - the corridor co-simulation, the "
+   197→    "vehicular edge-computing (VEC) cell environment, the trained MEPPO policies, and the paired "
+   198→    "outage protocol - now serve live requests through their original, unmodified code. Where the "
+   199→    "original sources were assumptions or static artifacts, the new application keeps them static "
+   200→    "and says so in the interface.", body))
+   201→story.append(Paragraph(
+   202→    "All acceptance criteria from the integration brief were verified: the main workflow operates "
+   203→    "end to end in a real browser; notebook-derived outputs match the original implementation "
+   204→    "exactly; errors and missing dependencies are handled with actionable messages; and setup "
+   205→    "instructions allow another developer to reproduce the verified environment. The measured "
+   206→    "performance figures and the remaining limitations are reported honestly in sections 7 and 8.", body))
+   207→
+   208→# ================================================================ 2
+   209→story.append(CondPageBreak(PAGE_H * 0.25))
+   210→story.extend(safe_keep([
+   211→    head("2. Sources and integration map"),
+   212→    Paragraph(
+   213→        "Both archives were inventoried before any change. The demo is a self-contained HTML/Three.js "
+   214→        "application whose data pipeline is documented by its own build tools: tools/make_traces.py "
+   215→        "converts a notebook results bundle into the replayable demo_data.json, and tools/build_demo.py "
+   216→        "inlines that JSON into the page. The notebook archive contains the v7.1 full run (16 Python "
+   217→        "modules, checkpoints, ONNX exports, results bundle) plus earlier v5.1/v6.1 notebooks and "
+   218→        "v7.2 real-data attempts.", body),
+   219→]))
+   220→story.append(Spacer(1, 6))
+   221→t = make_table(
+   222→    ["Demo element", "Old demo", "New application"],
+   223→    [
+   224→        ["3D situation map (terrain, routes, vehicles, RSUs, playback)",
+   225→         "embedded replay", "ported renderer, driven by live API traces; restrained operational restyle"],
+   226→        ["Corridor traces (12 presets)", "embedded demo_data.json",
+   227→         "corridor.run_trial executed per request; recorder verified against an unrecorded rerun"],
+   228→        ["Convoy behaviour", "embedded",
+   229→         "live; one trial per member with the same blockage, traffic seed and RSUs"],
+   230→        ["Cell tick replay (520 ticks)", "embedded",
+   231→         "VECEnv + OnnxPolicy live, with env.peek counterfactuals"],
+   232→        ["C3 outage table", "static table", "paired live study via policies.rollout"],
+   233→        ["results_v71.json numbers and figures", "mixed into panels",
+   234→         "served as explicitly labeled reference artifacts"],
+   235→    ],
+   236→    widths=[150, 110, 230])
+   237→story.extend(safe_keep([t, Paragraph("Table 1. Where each demo element comes from now.", cap)]))
+   238→story.append(Spacer(1, 6))
+   239→story.append(Paragraph(
+   240→    "The v7.1 line was selected as the integration source because the demo replayed exactly that "
+   241→    "run (20261008-124455-ba2667). The v7.2 real-data attempts could not be integrated: they require "
+   242→    "live internet access to OpenStreetMap and NASA COOLR, which the original environment itself "
+   243→    "could not reach - the notebook rejected its own fetched OSM extract for disconnected roads and "
+   244→    "documented the COOLR server returning 404. This is documented rather than papered over; the "
+   245→    "application keeps the notebook's schematic two-route graph through the real place positions.", body))
+   246→
+   247→# ================================================================ 3
+   248→story.append(CondPageBreak(PAGE_H * 0.25))
+   249→story.extend(safe_keep([
+   250→    head("3. System architecture"),
+   251→    Paragraph(
+   252→        "The application separates presentation, orchestration and simulation. The Next.js console "
+   253→        "owns forms, tables, charts and the 3D map; the FastAPI service owns the notebook world - it "
+   254→        "imports the original modules from its core/ directory, loads the notebook's own bundle "
+   255→        "assets once at startup, and exposes a small, validated API. In the sandbox the two are "
+   256→        "joined by the platform gateway; in a plain deployment the frontend proxies to the service "
+   257→        "port directly. No database, queue or cloud service was added because no requirement "
+   258→        "justifies one.", body),
+   259→]))
+   260→story.append(Spacer(1, 6))
+   261→t = make_table(
+   262→    ["Layer", "Component", "Responsibility"],
+   263→    [
+   264→        ["Frontend", "Next.js 16 console (single route)",
+   265→         "launchers, playback, metrics, decision inspector, reference browser"],
+   266→        ["Gateway", "Caddy reverse proxy", "single external port; routes /api to the service by query parameter"],
+   267→        ["Service", "FastAPI (port 8100)", "validation, job queue, JSON serialisation, error mapping"],
+   268→        ["Simulation", "app/corridor_svc.py", "recorded corridor.run_trial runs + hook verification"],
+   269→        ["Simulation", "app/cell_svc.py", "VECEnv runs driven by shipped ONNX actors with explanations"],
+   270→        ["Simulation", "app/outage_svc.py", "paired outage studies via policies.rollout and runlog.mean_ci"],
+   271→        ["Assets", "core/ + assets/demo_bundle/", "the unmodified notebook modules and its recorded bundle"],
+   272→    ],
+   273→    widths=[70, 150, 270])
+   274→story.extend(safe_keep([t, Paragraph("Table 2. Service boundaries.", cap)]))
+   275→story.append(Spacer(1, 6))
+   276→story.append(Paragraph(
+   277→    "Requests that take longer than a moment are executed as jobs on a two-worker thread pool. The "
+   278→    "client submits, receives a job id, and polls; progress is reported by the simulation itself - "
+   279→    "per convoy member, per tick block, or per rollout - never fabricated. Job results are kept in "
+   280→    "a bounded in-memory registry (40 most recent) so the session's run history survives page "
+   281→    "navigation without introducing persistence the task does not need.", body))
+   282→story.append(Paragraph(
+   283→    "Every input is validated server-side with strict ranges: vehicle counts to 60, ticks to 3000, "
+   284→    "at most six paired seeds and four outage sizes per study, footprints between 500 and 30,000 m. "
+   285→    "No user input ever reaches a filesystem path; reference sections and figures are allow-listed. "
+   286→    "The service returns structured errors with actionable text and never exposes stack traces to "
+   287→    "the client.", body))
+   288→
+   289→# ================================================================ 4
+   290→story.append(CondPageBreak(PAGE_H * 0.25))
+   291→story.extend(safe_keep([
+   292→    head("4. Fidelity evidence"),
+   293→    Paragraph(
+   294→        "The notebook's simulations are deterministic given a seed and parameters, which makes "
+   295→        "equivalence testable rather than aspirational. The original demo embedded traces produced by "
+   296→        "tools/make_traces.py from the notebook run; the live service re-executes the same code with "
+   297→        "the same inputs and the test suite compares the results field by field.", body),
+   298→]))
+   299→story.append(Spacer(1, 6))
+   300→t = make_table(
+   301→    ["Consistency check", "Scope", "Result"],
+   302→    [
+   303→        ["Corridor ambulance tracks", "12 preset traces (3 hazards x 4 warning modes)", "identical, all rows"],
+   304→        ["Corridor civilian tracks", "same 12 traces", "identical, all rows"],
+   305→        ["Corridor summaries", "arrival/oracle/extra/informed, flags", "equal within 1e-9"],
+   306→        ["Cell trace", "520 ticks, model B v30, V=30, seed 21", "identical, field-for-field"],
+   307→        ["Settled true times", "510 settled requests", "equal within 5e-4 s"],
+   308→        ["Determinism on repeat", "flood/RSU run twice, landslide repeat over HTTP", "identical summaries"],
+   309→        ["Recorder-hook neutrality", "every recorded run vs unrecorded rerun", "verified at request time; service refuses on mismatch"],
+   310→    ],
+   311→    widths=[130, 180, 180])
+   312→story.extend(safe_keep([t, Paragraph("Table 3. Output consistency against the notebook recording (scripts/test_consistency.py and tests/test_service.py).", cap)]))
+   313→story.append(Spacer(1, 6))
+   314→story.append(Paragraph(
+   315→    "Two fidelity mechanisms deserve mention. First, the recorder is the demo builder's own "
+   316→    "anchored-source-patch of corridor.run_trial; the service re-derives the patched function at "
+   317→    "startup, aborts if the anchor lines ever move, and re-runs each recorded trial unrecorded to "
+   318→    "prove the hook changes nothing before serving a trace. Second, policy decisions come from the "
+   319→    "shipped ONNX exports through the notebook's own OnnxPolicy wrapper; the notebook itself "
+   320→    "measured zero decision disagreements out of 500 between the exports and the torch checkpoints, "
+   321→    "so evaluating the exports is a documented, verified equivalence rather than a shortcut.", body))
+   322→
+   323→# ================================================================ 5
+   324→story.append(CondPageBreak(PAGE_H * 0.25))
+   325→story.extend(safe_keep([
+   326→    head("5. Interface redesign"),
+   327→    Paragraph(
+   328→        "The demo's holographic aesthetic - bloom, aurora terrain, stars, neon grid, scripted damage "
+   329→        "animations and an eight-step story - was replaced by a restrained operational design: a "
+   330→        "graphite terrain with subtle contours and elevation shading, desaturated road colours, "
+   331→        "status colour reserved for meaning (green alive, red down, amber attention), tabular "
+   332→        "numerals, and clear empty and loading states. Animation survives only as meaningful "
+   333→        "feedback: playback of the returned trace, an ambulance trail showing the travelled route, "
+   334→        "and progress bars whose stages name the real simulation work in flight.", body),
+   335→]))
+   336→story.append(Paragraph(
+   337→    "The console is organised into six sections. Overview carries provenance, service health and the "
+   338→    "model registry. Corridor launches road-scale trials and plays the returned trace on the map "
+   339→    "with scrubber and speed controls, alongside metric cards, the convoy table and the coverage "
+   340→    "curve. VEC cell renders the 558-metre highway with its eight roadside units and two traffic "
+   341→    "lanes on a canvas strip, a per-tick timeline of completion times against deadlines, and a "
+   342→    "decision inspector showing the policy's probabilities and exact counterfactuals for the "
+   343→    "selected request. Outage study runs the paired protocol and tabulates mean plus 95% confidence "
+   344→    "intervals with the notebook's recorded table available for context. Reference browses the "
+   345→    "recorded artifacts and figures. About documents the integration inside the product itself.", body))
+   346→story.append(Paragraph(
+   347→    "Accessibility and responsiveness were addressed directly: semantic landmarks and aria labels on "
+   348→    "charts and controls, keyboard operation of the map (arrow keys seek), 44 px touch targets, and "
+   349→    "layouts that collapse from a seven-column launcher grid to stacked mobile forms. Without WebGL "
+   350→    "the map degrades to a notice while every table and chart remains functional; without the "
+   351→    "Python service the header reports it and each panel explains what is missing.", body))
+   352→
+   353→# ================================================================ 6
+   354→story.append(CondPageBreak(PAGE_H * 0.25))
+   355→story.extend(safe_keep([
+   356→    head("6. Verification and test results"),
+   357→    Paragraph(
+   358→        "The backend suite (pytest, 40 tests) covers asset integrity, startup and health, unit "
+   359→        "behaviour of each service, validation and invalid-request handling, output consistency "
+   360→        "against the notebook recording, missing-file failure modes, repeated-request determinism and "
+   361→        "the end-to-end job workflow over HTTP. All 40 pass. The frontend was verified in a real "
+   362→        "browser: every section was opened, a corridor simulation, a cell run and a paired outage "
+   363→        "study were launched through the interface, results rendered from live API data, and "
+   364→        "desktop and mobile layouts were exercised. Issues found during that verification (a label "
+   365→        "getter bug that disabled the 3D map, a stale variable in the reference panel) were fixed "
+   366→        "and re-verified.", body),
+   367→]))
+   368→story.append(Spacer(1, 6))
+   369→t = make_table(
+   370→    ["Area", "Checks", "Outcome"],
+   371→    [
+   372→        ["Asset and dependency integrity", "core modules present; bundle files present; imports succeed", "pass"],
+   373→        ["Backend startup and health", "/health readiness; /api/meta provenance; /api/graph geometry", "pass"],
+   374→        ["Unit behaviour", "corridor service, cell service, outage service incl. baselines", "pass"],
+   375→        ["Validation and invalid requests", "422 with field-level messages; unknown job/section 404", "pass"],
+   376→        ["Output consistency vs notebook", "12 corridor traces + 520-tick cell trace + summaries", "pass (exact)"],
+   377→        ["Failure modes", "missing model export raises actionable FileNotFoundError", "pass"],
+   378→        ["Repeated requests", "deterministic repeat; job listing; LRU bound", "pass"],
+   379→        ["End-to-end over HTTP", "submit, poll, complete corridor job; results sane", "pass"],
+   380→        ["Frontend (browser)", "all six sections; three live runs; desktop + mobile viewports", "pass after fixes"],
+   381→    ],
+   382→    widths=[130, 210, 90])
+   383→story.extend(safe_keep([t, Paragraph("Table 4. Verification summary (mini-services/eptask-api/tests).", cap)]))
+   384→story.append(Spacer(1, 6))
+   385→story.append(Paragraph(
+   386→    "To reproduce: start the service (bash mini-services/eptask-api/run.sh), install its requirements, "
+   387→    "then run python3 -m pytest tests/ -v from mini-services/eptask-api. The consistency tests locate "
+   388→    "the original demo recording from the extracted demo.zip and can be pointed at any copy through "
+   389→    "the EPTASK_DEMO_DATA environment variable.", body))
+   390→
+   391→# ================================================================ 7
+   392→story.append(CondPageBreak(PAGE_H * 0.25))
+   393→story.extend(safe_keep([
+   394→    head("7. Measured performance"),
+   395→    Paragraph(
+   396→        "Timings below were measured on the deployed sandbox (CPU-only, torch 2.14.1+cpu, the same "
+   397→        "build the notebook used). Startup loads the graph, reference bundle and latency arms in "
+   398→        "about two seconds; ONNX sessions load in about 20 ms each and are cached after first use, "
+   399→        "so repeated requests pay only simulation cost.", body),
+   400→]))
+   401→story.append(Spacer(1, 6))
+   402→t = make_table(
+   403→    ["Operation", "Measured", "Notes"],
+   404→    [
+   405→        ["Corridor run with convoy and trace", "8-14 s wall",
+   406→         "7 full 6-hour trials plus one unrecorded verification rerun per request"],
+   407→        ["Corridor run without convoy", "1-2 s", "ambulance trial + verification"],
+   408→        ["VEC cell, 520 ticks, explanations on", "0.6-2 s", "dominated by env.peek counterfactuals, as in the notebook"],
+   409→        ["Paired outage study, 2 policies x 3 sizes x 3 seeds", "6-10 s",
+   410→         "36 rollouts of 1101 steps; linear in policies x sizes x seeds"],
+   411→        ["Concurrent behaviour", "2 workers", "further jobs queue with honest 'queued' progress"],
+   412→        ["Frontend first render", "under 2 s", "trace payloads for one corridor run are 0.3-1 MB"],
+   413→    ],
+   414→    widths=[170, 90, 230])
+   415→story.extend(safe_keep([t, Paragraph("Table 5. Measured timings (sandbox, CPU).", cap)]))
+   416→story.append(Spacer(1, 6))
+   417→story.append(Paragraph(
+   418→    "No algorithm, parameter or preprocessing change was made for speed; the numbers above are the "
+   419→    "original notebook code's cost of doing real work per request. The dominant optimisations are "
+   420→    "architectural: models and assets load once, sessions are cached, and heavy runs are bounded by "
+   421→    "the worker pool instead of blocking the HTTP event loop.", body))
+   422→
+   423→# ================================================================ 8
+   424→story.append(CondPageBreak(PAGE_H * 0.25))
+   425→story.extend(safe_keep([
+   426→    head("8. Limitations and remaining requirements"),
+   427→    Paragraph(
+   428→        "The corridor graph is the notebook's schematic two-route map through real place positions; "
+   429→        "live OpenStreetMap ingestion is not implemented, and the notebook's own v7.2 attempt "
+   430→        "documents why its fetched extract was rejected. Outage and cell studies evaluate the ONNX "
+   431→        "exports rather than the torch checkpoints - a verified equivalence (0/500 disagreements) "
+   432→        "rather than an identity. The micro-latency samples feeding corridor service delays are the "
+   433→        "recorded arms from the bundle, selectable per request; recomputing them live would double "
+   434→        "run times for identical numbers. Runs are kept in memory only; there is no authentication "
+   435→        "layer, which is proportionate to a research console but must be added before any exposure "
+   436→        "beyond a trusted network.", body),
+   437→]))
+   438→story.append(Paragraph(
+   439→    "Remaining setup for another developer is short: Python 3.12 with the requirements in "
+   440→    "mini-services/eptask-api/requirements.txt, Bun or Node 20 for the console, one environment "
+   441→    "variable for the service port if 8100 is unsuitable, and the two commands in the repository "
+   442→    "README. Browser verification covered headless Chromium (WebGL2) and standard desktop Chrome "
+   443→    "paths; Safari and Firefox were not exercised. Results inherit the sources' declared "
+   444→    "assumptions - schematic geometry, Poisson traffic, fixed radio ranges and the convoy's "
+   445→    "dispatch-time convention - and therefore support engineering comparison, not operational "
+   446→    "claims.", body))
+   447→
+   448→# ---------------------------------------------------------------- build
+   449→doc = TocDocTemplate(OUT, pagesize=A4, leftMargin=MARGIN, rightMargin=MARGIN,
+   450→                     topMargin=0.85 * inch, bottomMargin=0.85 * inch,
+   451→                     title="EPtask Operations Console - Architecture and Integration Report",
+   452→                     author="Z.ai", creator="Z.ai",
+   453→                     subject="Integration of demo.zip and Notebook.zip into a live application")
+   454→doc.multiBuild(story, onFirstPage=footer, onLaterPages=footer)
+   455→print("body written:", OUT, os.path.getsize(OUT), "bytes")
+   456→
