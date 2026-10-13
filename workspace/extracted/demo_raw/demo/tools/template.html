@@ -1,0 +1,1352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EPtask V7.1: holographic twin of the Trishuli valley</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#EAF0FF; --muted:#A7B1DC; --line:rgba(160,178,255,.20);
+  --glass:rgba(13,17,50,.74); --glass-hi:rgba(22,27,72,.88);
+  --blue:#4C8DFF; --white:#EAF2FF; --red:#FF4D5E; --green:#2EE6A6; --yellow:#FFC93C; --violet:#9B5CFF; --magenta:#FF4FD8;
+  --t0:#4C8DFF; --t1:#2EE6A6; --t2:#FFC93C; --t3:#9B5CFF;
+  --disp:'Chakra Petch','Segoe UI',system-ui,sans-serif;
+  --font:'Barlow','Segoe UI',system-ui,-apple-system,sans-serif;
+  --fast:150ms; --mid:240ms;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body{overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#1B1554 0%,#0A0D2C 55%,#060818 100%)}
+.mono{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;white-space:nowrap;font-family:var(--disp);font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--white);background:rgba(8,11,36,.78);border:1px solid rgba(160,178,255,.26);border-left:2px solid var(--blue);padding:1px 7px;border-radius:3px;will-change:transform}
+.lbl.route{border-left-color:var(--violet);color:#D8CCFF}
+.lbl.route.v{border-left-color:var(--blue);color:#CFE0FF}
+.lbl.hz{background:rgba(255,77,94,.9);border-color:#FF8B97;color:#fff;box-shadow:0 0 14px rgba(255,77,94,.6)}
+.lbl.amb{border-left-color:var(--red);box-shadow:0 0 10px rgba(255,255,255,.25)}
+header#bar{position:fixed;top:0;left:0;right:0;padding:calc(10px + var(--safe-top)) 16px 10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(rgba(7,9,30,.92) 65%,rgba(7,9,30,0));z-index:20}
+.brand{display:flex;flex-direction:column;min-width:0;margin-right:auto;gap:2px}
+.brand .top{display:flex;align-items:center;gap:10px}
+.flags{display:inline-flex;gap:3px}
+.flags i{width:7px;height:18px;border-radius:2px;display:block;box-shadow:0 0 10px currentColor}
+.brand strong{font-family:var(--disp);font-size:21px;font-weight:700;letter-spacing:.03em}
+.brand span{color:var(--muted);font-size:12.5px}
+.grp{display:flex;align-items:center;gap:8px}
+.grp>label{font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;background:var(--glass);padding:2px;backdrop-filter:blur(10px)}
+.seg button,.btn,select{font:inherit;font-family:var(--disp);font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink);background:transparent;border:0;border-radius:7px;padding:5px 11px;cursor:pointer;transition:background var(--fast),box-shadow var(--fast),color var(--fast)}
+.seg button:hover,.btn:hover{background:rgba(160,178,255,.12)}
+.seg button[aria-pressed="true"]{background:linear-gradient(90deg,rgba(76,141,255,.55),rgba(155,92,255,.55));box-shadow:0 0 14px rgba(110,120,255,.55),inset 0 0 0 1px rgba(200,210,255,.35)}
+.seg button:focus-visible,.btn:focus-visible,select:focus-visible,.step:focus-visible,.dockb:focus-visible,.wx:focus-visible,input[type=range]:focus-visible,.pill:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--glass)}
+.btn.primary{background:linear-gradient(90deg,#3E7BFF,#8F55FF);border-color:transparent;padding:6px 16px;box-shadow:0 0 18px rgba(110,110,255,.55)}
+.btn.primary:hover{filter:brightness(1.12)}
+.btn:active,.seg button:active{transform:translateY(1px)}
+select{border:1px solid var(--line);background:var(--glass);padding:5px 8px}
+select option{background:#141846;color:var(--ink)}
+.pill{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:999px;background:var(--glass);padding:4px 11px;cursor:pointer;color:var(--ink)}
+.pill .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--yellow);margin-right:7px;vertical-align:1px;box-shadow:0 0 8px var(--yellow)}
+.pill.full .dot{background:var(--green);box-shadow:0 0 8px var(--green)}
+#narr{position:fixed;bottom:104px;left:50%;transform:translateX(-50%);width:min(600px,calc(100vw - 720px));min-width:340px;background:var(--glass-hi);border:1px solid var(--line);border-radius:12px;padding:12px 16px 10px 18px;z-index:15;box-shadow:0 18px 40px rgba(0,0,0,.45);backdrop-filter:blur(14px)}
+#narr::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:3px;background:linear-gradient(var(--blue),var(--violet),var(--magenta));box-shadow:0 0 12px rgba(155,92,255,.8)}
+#narr .nh{display:flex;align-items:baseline;gap:10px;justify-content:space-between}
+#narr h1{font-family:var(--disp);font-size:20px;font-weight:700;letter-spacing:.02em;margin:0}
+#narr p{margin:6px 0 0;max-width:70ch}
+#narr .foot{color:var(--muted);font-size:12.5px}
+.tag{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;border:1px solid var(--line)}
+.tag.rec{color:var(--green);border-color:rgba(46,230,166,.55);box-shadow:0 0 10px rgba(46,230,166,.25)}
+.tag.ill{color:#FF9AA4;border-color:rgba(255,77,94,.6);box-shadow:0 0 10px rgba(255,77,94,.25)}
+.win{position:fixed;--hue:var(--blue);background:var(--glass);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 26px -10px var(--hue);z-index:10;display:flex;flex-direction:column;max-height:calc(100vh - 220px);backdrop-filter:blur(14px) saturate(140%);transition:box-shadow var(--mid)}
+.win::before{content:'';position:absolute;left:12px;right:12px;top:-1px;height:2px;border-radius:2px;background:var(--hue);box-shadow:0 0 14px var(--hue)}
+.win.flash{box-shadow:0 0 0 1px var(--hue),0 18px 44px rgba(0,0,0,.5),0 0 34px -4px var(--hue)}
+.wt{display:flex;align-items:center;gap:8px;padding:8px 8px 7px 11px;border-bottom:1px solid var(--line);cursor:grab;user-select:none;touch-action:none}
+.wt:active{cursor:grabbing}
+.wt h2{font-family:var(--disp);font-size:13.5px;font-weight:600;letter-spacing:.02em;margin:0;flex:1}
+.wtag{font-family:var(--disp);font-size:11px;font-weight:700;padding:1px 6px;border:1px solid var(--hue);color:var(--hue);border-radius:4px;text-shadow:0 0 8px var(--hue)}
+.wx{border:0;background:transparent;font-size:17px;line-height:1;padding:2px 7px;border-radius:5px;cursor:pointer;color:var(--muted)}
+.wx:hover{background:rgba(160,178,255,.14);color:var(--ink)}
+.wb{padding:9px 12px 11px;overflow:auto;font-size:12.8px}
+.wb p{margin:0 0 6px}
+.wb b{color:#fff}
+.muted{color:var(--muted)}
+.small{font-size:11.8px}
+table.t{width:100%;border-collapse:collapse}
+table.t td,table.t th{padding:3px 4px;text-align:left;vertical-align:middle}
+table.t th{font-weight:500;color:var(--muted);font-size:11.5px}
+table.t tr+tr td{border-top:1px solid rgba(160,178,255,.10)}
+.stack{display:flex;height:9px;border-radius:2px;overflow:hidden;width:120px;background:rgba(255,255,255,.07)}
+.stack i{display:block;height:100%;opacity:.38}
+.stack i.on{opacity:1;box-shadow:0 0 8px currentColor}
+.b0{background:var(--t0);color:var(--t0)}.b1{background:var(--t1);color:var(--t1)}.b2{background:var(--t2);color:var(--t2)}.b3{background:var(--t3);color:var(--t3)}
+.keys{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 0}
+.keys span{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)}
+.keys i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.hbar{height:12px;border-radius:2px;background:var(--t0);opacity:.45}
+.hbar.on{opacity:1;box-shadow:0 0 10px var(--t0)}
+.hbar.bad{background:repeating-linear-gradient(45deg,rgba(160,178,255,.25),rgba(160,178,255,.25) 4px,rgba(160,178,255,.06) 4px,rgba(160,178,255,.06) 8px);opacity:1}
+.ladder{display:grid;grid-template-columns:28px 1fr;gap:1px 8px;margin:4px 0 8px}
+.ladder .lv{font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.ladder .row{height:15px;display:flex;align-items:center;gap:4px;border-radius:3px;padding:0 4px;background:rgba(255,255,255,.03)}
+.ladder .row.res{background:rgba(255,201,60,.14);box-shadow:inset 0 0 0 1px rgba(255,201,60,.35)}
+.ladder .row .note{font-size:10.5px;color:var(--yellow);margin-left:auto}
+.pip{width:10px;height:10px;border-radius:50%;background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.pip.p{background:var(--yellow);box-shadow:0 0 10px var(--yellow)}
+.lights{display:flex;gap:6px;margin:4px 0 8px}
+.light{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:600;color:#06221a;background:var(--green);box-shadow:0 0 12px rgba(46,230,166,.75)}
+.light.off{background:#3a2230;color:#c9a1aa;box-shadow:inset 0 0 0 1px rgba(255,77,94,.55)}
+.chip{font-size:11px;border-radius:999px;padding:1px 7px;border:1px solid var(--line);white-space:nowrap}
+.chip.t3{color:#FF9AA4;border-color:rgba(255,77,94,.6);box-shadow:0 0 8px rgba(255,77,94,.35)}
+.chip.t2{color:var(--yellow);border-color:rgba(255,201,60,.55)}
+.chip.t1{color:var(--muted)}
+.ok{color:var(--green);font-weight:600}.bad{color:#FF7A86;font-weight:600}
+.score{display:inline-block;height:7px;background:linear-gradient(90deg,var(--magenta),var(--red));border-radius:2px;vertical-align:middle;box-shadow:0 0 6px rgba(255,79,216,.6)}
+.cellcv{width:100%;height:200px;display:block;border-radius:8px;background:#0B0F33}
+svg.spark{width:100%;height:46px;display:block}
+footer#journey{position:fixed;left:0;right:0;bottom:0;padding:8px 16px calc(10px + var(--safe-bottom));background:linear-gradient(rgba(7,9,30,0),rgba(7,9,30,.94) 30%);z-index:20}
+#steps{list-style:none;margin:0;padding:0;display:flex;gap:5px;align-items:stretch}
+#steps li{flex:1;min-width:0}
+.step{width:100%;text-align:left;font:inherit;font-family:var(--disp);font-weight:600;font-size:12.5px;letter-spacing:.02em;color:var(--muted);background:rgba(13,17,50,.7);border:1px solid var(--line);border-radius:8px;padding:6px 8px;cursor:pointer;display:flex;gap:7px;align-items:center;transition:background var(--fast),color var(--fast),box-shadow var(--fast)}
+.step .n{font-size:11px;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;border:1px solid currentColor;flex:none}
+.step .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step:hover{color:var(--ink);background:rgba(22,27,72,.9)}
+.step.done{color:#CFE0FF}
+.step.done .n{background:rgba(76,141,255,.35);border-color:var(--blue)}
+.step[aria-current="step"]{color:#fff;background:linear-gradient(90deg,rgba(62,123,255,.65),rgba(143,85,255,.65));border-color:rgba(200,210,255,.4);box-shadow:0 0 18px rgba(110,110,255,.55)}
+.row2{display:flex;align-items:center;gap:12px;margin-top:7px}
+.row2 input[type=range]{flex:1;accent-color:var(--violet)}
+#clock{font-family:var(--disp);font-size:12.5px;min-width:200px;color:#CFE0FF}
+#dock{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.dockb{font:inherit;font-family:var(--disp);font-weight:700;font-size:11px;padding:3px 7px;border-radius:5px;border:1px solid var(--line);background:rgba(13,17,50,.7);color:var(--muted);cursor:pointer}
+.dockb[aria-pressed="true"]{border-color:var(--hue);color:var(--hue);box-shadow:0 0 10px -2px var(--hue)}
+#nogl{position:fixed;inset:0;display:grid;place-items:center;z-index:5;padding:20px;text-align:center;color:var(--muted)}
+.fatal{position:fixed;inset:30% 10% auto;background:#1a1440;border:1px solid var(--red);padding:16px;border-radius:8px;z-index:99;color:var(--ink)}
+.logbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.logbar .seg button,.logbar .btn{font-size:11.5px;padding:3px 8px}
+.logtbl{max-height:300px;overflow:auto;border-top:1px solid var(--line)}
+.lv{font-size:10.5px;font-weight:600;border-radius:4px;padding:0 5px;border:1px solid var(--line)}
+.lv.info{color:var(--green)}.lv.warn{color:var(--yellow);border-color:rgba(255,201,60,.5)}.lv.error{color:#FF7A86;border-color:rgba(255,77,94,.6)}.lv.debug{color:var(--muted)}
+.lbl.pol{border-left-color:#4C8DFF}.lbl.fire{border-left-color:#FF3B3B}.lbl.army{border-left-color:#9DB05C}
+#hud{position:fixed;left:50%;transform:translateX(-50%);top:112px;z-index:30;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;background:rgba(8,11,36,.88);border:1px solid var(--line);border-radius:6px;padding:6px 8px;color:#CFE0FF;white-space:pre;pointer-events:none}
+@media (max-width:1180px){#narr{width:min(540px,calc(100vw - 32px));bottom:118px}}
+@media (max-width:960px){
+  #wins{position:fixed;left:0;right:0;bottom:118px;max-height:42vh;overflow:auto;z-index:12;padding:0 8px}
+  .win{position:static!important;width:auto!important;max-height:none;margin:10px 0}
+  .wt{cursor:default}
+  #narr{position:fixed;bottom:calc(118px + 42vh);left:8px;right:8px;transform:none;width:auto;min-width:0}
+  .step .s{display:none}
+  #clock{min-width:0}
+  .brand span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" role="img" aria-label="Holographic 3D model of the Trishuli valley corridor between Bidur and Syaphrubesi. Drag to rotate, scroll to zoom, right-drag to pan."></canvas>
+<div id="labels" aria-hidden="true"></div>
+<div id="nogl" hidden><p>This browser cannot draw the 3D valley (WebGL is unavailable).<br>The windows still replay the same recorded run.</p></div>
+<header id="bar">
+  <div class="brand"><div class="top"><span class="flags" aria-hidden="true"><i style="color:#4C8DFF;background:#4C8DFF"></i><i style="color:#EAF2FF;background:#EAF2FF"></i><i style="color:#FF4D5E;background:#FF4D5E"></i><i style="color:#2EE6A6;background:#2EE6A6"></i><i style="color:#FFC93C;background:#FFC93C"></i></span><strong>EPtask V7.1</strong></div><span>A holographic twin of the Trishuli valley, Nepal: from the hazard to the people</span></div>
+  <div class="grp" role="group" aria-label="Hazard"><label id="hzlab">Hazard</label><div class="seg" id="hazardSeg" aria-labelledby="hzlab"></div></div>
+  <div class="grp"><label for="modeSel">Warning network</label><select id="modeSel"></select></div>
+  <div class="grp" role="group" aria-label="Playback">
+    <button id="playBtn" class="btn primary" type="button">Play the story</button>
+    <div class="seg" id="speedSeg" aria-label="Playback speed"></div>
+    <button id="viewBtn" class="btn" type="button" title="Return the camera to the story view">Recenter</button>
+  </div>
+  <button id="pill" class="pill" type="button" aria-label="What this demo replays"></button>
+</header>
+<section id="narr" aria-live="polite"><div class="nh"><h1 id="narrTitle"></h1><span id="narrTag" class="tag"></span></div><p id="narrBody"></p><p id="narrFoot" class="foot"></p></section>
+<div id="wins"></div>
+<footer id="journey">
+  <ol id="steps" aria-label="Story steps"></ol>
+  <div class="row2"><span id="clock" class="mono" aria-live="off"></span><input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Valley time"><nav id="dock" aria-label="Windows"></nav></div>
+</footer>
+__SCRIPTS__
+<script id="demo-data" type="application/json">__DATA__</script>
+<script>
+(function () {
+'use strict';
+const ERR = [];
+const API = { ready: false, errors: ERR };
+window.__demo = API;
+/* ------------------------------------------------------------ log (observability)
+   Entry schema: {seq, ts: ms since load, level: debug|info|warn|error,
+   cat: boot|data|scenario|step|sim|render|perf|ui|test|js, msg, ctx: {hz, mode, step, t}, data}.
+   Open it from the dock (Log): filter, copy, download, run the self-test.
+   ?debug=1 adds a HUD and mirrors debug entries to the console; errors always go to console.error. */
+const LOG = []; let LOG_SEQ = 0; const T_LOAD = performance.now();
+const DEBUG = /[?&]debug=1/.test(location.search), LEGACY = /[?&]legacy=1/.test(location.search), SELFTEST = /[?&]selftest=1/.test(location.search);
+function ctxNow() { try { return { hz: state.hazard, mode: state.mode, step: state.step, t: Math.round(state.t) }; } catch (e) { return null; } }
+function log(level, cat, msg, data) {
+  const e = { seq: ++LOG_SEQ, ts: +(performance.now() - T_LOAD).toFixed(1), level, cat, msg, ctx: ctxNow(), data: data === undefined ? null : data };
+  LOG.push(e); if (LOG.length > 4000) LOG.shift();
+  if (level === 'error') { console.error('[eptask:' + cat + '] ' + msg, data || ''); try { openWin('log', false); } catch (x) { /* windows not built yet */ } }
+  else if (level !== 'debug' || DEBUG) console.log('[eptask:' + level + ':' + cat + '] ' + msg, data || '');
+  return e;
+}
+API.log = LOG;
+window.addEventListener('error', e => { ERR.push(String(e.message || e)); log('error', 'js', String(e.message || e), { src: e.filename, line: e.lineno, col: e.colno, stack: e.error && e.error.stack ? String(e.error.stack).slice(0, 600) : null }); });
+window.addEventListener('unhandledrejection', e => { ERR.push('unhandled rejection: ' + e.reason); log('error', 'js', 'unhandled promise rejection', { reason: String(e.reason) }); });
+let D;
+try { D = JSON.parse(document.getElementById('demo-data').textContent); }
+catch (e) { document.body.insertAdjacentHTML('beforeend', '<p class="fatal">The recorded run inside this page could not be read. Regenerate the page with tools/make_traces.py and build.py.</p>'); throw e; }
+if (typeof THREE === 'undefined') { document.body.insertAdjacentHTML('beforeend', '<p class="fatal">The 3D library did not load (no internet?). Open the offline copy, index.html, which ships with its own scripts.</p>'); return; }
+
+/* ------------------------------------------------------------ helpers */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FX = !/[?&]fx=0/.test(location.search);   // ?fx=0 turns bloom off (slow GPUs, tests)
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const $ = id => document.getElementById(id);
+const META = D.meta, RES = D.results, GR = D.graph, CELL = D.cell;
+const HZ = ['earthquake', 'landslide', 'flood'];
+const MODES = META.modes;
+const MODE_LABEL = { 'NONE': 'None', 'V2V': 'Vehicle-to-vehicle relay', 'RSU': 'Roadside units only', 'V2V+RSU': 'Relay and roadside units' };
+const TGT = ['Roadside unit', 'Nearby vehicle', 'On board', 'Cloud'];
+const TIER = ['', 'Minor', 'Delayed', 'Immediate'];
+// neon prayer-flag palette: blue, white, red, green, yellow (+ violet, magenta)
+const C = { blue: 0x4C8DFF, white: 0xEAF2FF, red: 0xFF4D5E, green: 0x2EE6A6, yellow: 0xFFC93C, violet: 0x9B5CFF, magenta: 0xFF4FD8,
+  veh: 0x8197E0, stuck: 0xFF6B78, dead: 0x3a2230, roadV: 0x5A9BFF, roadH: 0xA67CFF, mast: 0x2a3160 };
+const fmtMin = m => (m == null || !isFinite(m)) ? 'n/a' : (Math.abs(m) < 0.05 ? '0' : m.toFixed(m < 10 ? 1 : 0)) + ' min';
+function fmtClock(t) {
+  const s = Math.round(Math.abs(t)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  const str = (h ? h + ' h ' : '') + m + ' min';
+  if (t < 0) return str + ' before the hazard';
+  if (t < 60) return 'the moment of the hazard';
+  return str + ' after the hazard';
+}
+function ci(x, d, unit) {
+  if (!x || x[0] == null) return 'n/a';
+  const u = unit || '';
+  if (!x[2] || x[2] < 2 || x[1] == null) return x[0].toFixed(d) + u + ' (n=' + (x[2] || 1) + ')';
+  return x[0].toFixed(d) + ' ± ' + x[1].toFixed(d) + u + ' (n=' + x[2] + ')';
+}
+
+/* ------------------------------------------------------------ geometry (metres) */
+const nodeXY = {}; GR.nodes.forEach(n => { nodeXY[n[0]] = [n[1], n[2]]; });
+const named = {}; Object.entries(GR.named).forEach(([k, v]) => { named[k] = nodeXY[v]; });
+function densify(pts, step) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(L / step));
+    for (let k = 1; k <= n; k++) out.push([lerp(a[0], b[0], k / n), lerp(a[1], b[1], k / n)]);
+  }
+  return out;
+}
+function poly(pts) {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return { pts, cum, L: cum[cum.length - 1] || 1 };
+}
+function nearest(P, x, y) {
+  let best = 1e30, bs = 0; const p = P.pts;
+  for (let i = 0; i < p.length - 1; i++) {
+    const ax = p[i][0], ay = p[i][1], dx = p[i + 1][0] - ax, dy = p[i + 1][1] - ay, l2 = dx * dx + dy * dy || 1;
+    let u = ((x - ax) * dx + (y - ay) * dy) / l2; u = u < 0 ? 0 : u > 1 ? 1 : u;
+    const qx = ax + u * dx - x, qy = ay + u * dy - y, d = qx * qx + qy * qy;
+    if (d < best) { best = d; bs = (P.cum[i] + u * Math.sqrt(l2)) / P.L; }
+  }
+  return [Math.sqrt(best), bs];
+}
+function offsetLine(pts, off) {
+  return pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    return [p[0] - dy / l * off, p[1] + dx / l * off];
+  });
+}
+const valleyPts = GR.routes.access.concat(GR.routes.valley.slice(1));
+const VL = poly(valleyPts), HL = poly(GR.routes.hill), RL = poly(offsetLine(valleyPts, 170));
+const sJ = VL.cum[GR.routes.access.length - 1] / VL.L;
+function idxNear(pts, q) { let bi = 0, bd = 1e30; pts.forEach((p, i) => { const d = (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2; if (d < bd) { bd = d; bi = i; } }); return bi; }
+const sD = named.Dhunche ? HL.cum[idxNear(HL.pts, named.Dhunche)] / HL.L : 0.7;
+// schematic relief, not a DEM: approximate place elevations (m) anchor the two roads
+const VANCH = [[0, 540], [sJ, 650], [1, 1460]], HANCH = [[0, 650], [sD, 1960], [1, 1460]];
+function anch(A, s) { for (let i = 1; i < A.length; i++) if (s <= A[i][0]) return lerp(A[i - 1][1], A[i][1], (s - A[i - 1][0]) / ((A[i][0] - A[i - 1][0]) || 1)); return A[A.length - 1][1]; }
+function hash(i, j) { let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function vnoise(x, y) { const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); const a = hash(i, j), b = hash(i + 1, j), c = hash(i, j + 1), d = hash(i + 1, j + 1); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
+function fbm(x, y) { let s = 0, a = .5, f = 1; for (let o = 0; o < 5; o++) { s += a * vnoise(x * f, y * f); f *= 2.03; a *= .5; } return s; }
+const BB = (() => { const b = GR.bbox, m = 5000; return { minx: b[0] - m, miny: b[1] - m, maxx: b[2] + m, maxy: b[3] + m }; })();
+const CX = (BB.minx + BB.maxx) / 2, CY = (BB.miny + BB.maxy) / 2, VEX = 1.5;
+const Wx = x => (x - CX) / 100, Wz = y => -(y - CY) / 100, Wy = h => (h - 500) / 100 * VEX;
+function rawH(x, y) {
+  const [dv, sv] = nearest(VL, x, y), [dh, sh] = nearest(HL, x, y), [dr] = nearest(RL, x, y);
+  const north = (y - BB.miny) / (BB.maxy - BB.miny);
+  const base = 1150 + 1600 * fbm(x / 8500 + 3.1, y / 8500 - 1.7) + 950 * north;
+  let h = Math.min(base, anch(VANCH, sv) + 0.42 * Math.max(0, dv - 230));
+  if (dr < 170) h -= 24 * (1 - dr / 170);
+  const w = smooth(430, 90, dh);
+  return h + (anch(HANCH, sh) - h) * w;
+}
+const NX = 170, NY = Math.round(NX * (BB.maxy - BB.miny) / (BB.maxx - BB.minx));
+const HG = new Float32Array((NX + 1) * (NY + 1));
+for (let j = 0; j <= NY; j++) for (let i = 0; i <= NX; i++)
+  HG[j * (NX + 1) + i] = rawH(BB.minx + i / NX * (BB.maxx - BB.minx), BB.miny + j / NY * (BB.maxy - BB.miny));
+// FIX 2: heights on the SAME triangles the terrain mesh draws, (a,b,c) + (b,d,c). The old
+// bilinear interpolation (kept for ?legacy=1) differs from the drawn surface in steep cells,
+// which sank vehicles and roads into the valley walls.
+function heightAt(x, y) {
+  const fx = clamp((x - BB.minx) / (BB.maxx - BB.minx) * NX, 0, NX - 1e-6), fy = clamp((y - BB.miny) / (BB.maxy - BB.miny) * NY, 0, NY - 1e-6);
+  const i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j, k = j * (NX + 1) + i;
+  const a = HG[k], b = HG[k + 1], c = HG[k + NX + 1], d = HG[k + NX + 2];
+  if (LEGACY) return lerp(lerp(a, b, u), lerp(c, d, u), v);
+  return (u + v <= 1) ? a + (b - a) * u + (c - a) * v : d + (c - d) * (1 - u) + (b - d) * (1 - v);
+}
+const V3 = (x, y, lift) => new THREE.Vector3(Wx(x), Wy(heightAt(x, y) + (lift || 0)), Wz(y));
+
+/* ------------------------------------------------------------ traces */
+function prep(tr) {
+  if (tr._p) return tr; tr._p = true;
+  tr.tracks = tr.veh.map(r => { const n = (r.length - 5) / 2; return { f0: r[1], inf: r[2], stuck: r[3], amb: (r[4] >> 1) & 1, xy: r.slice(5), last: r[1] + n - 1, type: vtypeOf(r[0]) }; });
+  tr.tStart = tr.frame_t[0];
+  const a = tr.amb;
+  tr.tArr = a.length ? a[a.length - 1][0] : tr.frame_t[tr.frame_t.length - 1];
+  tr.tLastFrame = tr.frame_t[tr.frame_t.length - 1];
+  const fa = (tr.fleet || []).map(f => f.track.length ? f.track[f.track.length - 1][0] : 0);
+  tr.tEnd = Math.max(tr.tArr + 120, tr.tLastFrame, ...fa) + 60;
+  if (!tr.tracks.length) log('warn', 'data', 'trace has no civilian vehicles', { hazard: tr.hazard, mode: tr.mode });
+  let tInf = null;
+  for (const k of tr.tracks) { if (k.amb || k.inf < 0) continue; const t = tr.frame_t[k.inf]; if (t >= 0 && (tInf === null || t < tInf)) tInf = t; }
+  tr.tInf = tInf;
+  const find = col => { const i = a.findIndex(s => s[col] === 1); return i >= 0 ? a[i][0] : null; };
+  tr.tAmbInf = find(3); tr.tPass = find(5); tr.tSeen = find(6);
+  tr.dead = tr.rsu.alive.filter(v => !v).length;
+  return tr;
+}
+function ambAt(tr, t) {
+  const a = tr.amb; if (!a.length || t < a[0][0]) return null;
+  let lo = 0, hi = a.length - 1;
+  if (t >= a[hi][0]) return { s: a[hi], x: a[hi][1] * 10, y: a[hi][2] * 10, dx: a[hi][1] - a[Math.max(0, hi - 1)][1], dy: a[hi][2] - a[Math.max(0, hi - 1)][2], i: hi };
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (a[m][0] <= t) lo = m; else hi = m; }
+  const A = a[lo], Bq = a[hi], f = (t - A[0]) / ((Bq[0] - A[0]) || 1);
+  return { s: A, x: lerp(A[1], Bq[1], f) * 10, y: lerp(A[2], Bq[2], f) * 10, dx: Bq[1] - A[1], dy: Bq[2] - A[2], i: lo };
+}
+function coverageAt(tr, t) { let v = null; for (const c of tr.coverage) { if (c[0] <= t) v = c[1]; else break; } return v; }
+
+/* ------------------------------------------------------------ state */
+const state = { hazard: 'landslide', mode: 'V2V+RSU', step: 0, playing: false, speed: 1, t: 0, cellTick: 0, cellAcc: 0, dwellUntil: 0, tr: null, plan: null };
+const DWELL = [5, 7, 7, 8, 9, 7, 7, 12];
+const STEPS = [
+  { name: 'Before', win: ['replica', 'cell'] },
+  { name: 'The hazard', win: ['c3'] },
+  { name: 'Units lost', win: ['c3', 'cell'] },
+  { name: 'People found', win: ['n2', 'cell'] },
+  { name: 'Scheduling', win: ['replica', 'c1', 'c2'] },
+  { name: 'Warning spreads', win: ['n1'] },
+  { name: 'At Betrawati', win: ['n1'] },
+  { name: 'Reaching people', win: ['n1', 'n2', 'run'] },
+];
+const CELLPLAN = (() => {
+  const ev = CELL.event.at, tk = CELL.ticks;
+  const det = tk.find(r => r.role === 2 && r.t >= ev && r.n);
+  const em = tk.find(r => r.role === 1 && r.t >= ev && !r.edge_ok && r.n) || tk.find(r => r.role === 1 && r.t >= ev && r.n);
+  return [0, ev - 2, ev + 2, det ? det.t : ev + 6, em ? em.t : ev + 12, null, null, null];
+})();
+function planFor(tr) {
+  const disp = tr.params.dispatch_s;
+  const tW = tr.tInf != null ? Math.max(tr.tInf, 300) : 600;
+  const tJ = tr.tPass != null ? Math.max(disp + 240, tr.tPass - 150) : Math.max(disp + 900, tW + 60);
+  return [tr.tStart, 0, 120, 200, 280, Math.min(tW, tJ - 60), tJ, tr.tArr];
+}
+
+/* ------------------------------------------------------------ labels projected from 3D */
+const labelsEl = $('labels');
+const LBL = [];
+const tmpV = new THREE.Vector3(), dummy = new THREE.Object3D(), tmpC = new THREE.Color();
+function addLabel(text, cls, get) { const el = document.createElement('div'); el.className = 'lbl ' + cls; el.textContent = text; labelsEl.appendChild(el); LBL.push({ el, get }); }
+function updateLabels() {
+  const w = innerWidth, h = innerHeight;
+  for (const L of LBL) {
+    const v = L.get();
+    if (!v) { L.el.style.display = 'none'; continue; }
+    tmpV.copy(v).project(camera);
+    const vis = tmpV.z < 1 && tmpV.z > -1 && Math.abs(tmpV.x) < 1.05 && Math.abs(tmpV.y) < 1.05;
+    L.el.style.display = vis ? 'block' : 'none';
+    if (vis) L.el.style.transform = `translate(${((tmpV.x * .5 + .5) * w).toFixed(1)}px,${((-tmpV.y * .5 + .5) * h).toFixed(1)}px) translate(-50%,-100%)`;
+  }
+}
+
+/* ------------------------------------------------------------ vehicle models (low-poly, length along +x, base at y=0) */
+function partsGeo(parts) {   // [[w, h, d, x, y, z, shade]] -> one geometry with vertex colours
+  const pos = [], col = [];
+  parts.forEach(p => {
+    const g = new THREE.BoxGeometry(p[0], p[1], p[2]).toNonIndexed(); g.translate(p[3], p[4], p[5]);
+    const a = g.attributes.position.array, c = new THREE.Color(p[6]);
+    for (let i = 0; i < a.length; i++) pos.push(a[i]);
+    for (let i = 0; i < a.length / 3; i++) col.push(c.r, c.g, c.b);
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals(); return g;
+}
+// non-emergency traffic: the MIX is an ASSUMPTION (Nepal mountain roads: many motorbikes, buses, trucks); positions are recorded
+const VTYPES = [
+  { key: 'car', share: .45, len: 2.2, geo: partsGeo([[2.2, .62, 1.1, 0, .31, 0, 0xffffff], [1.15, .5, 1.0, -.15, .87, 0, 0x6f7bb0]]) },
+  { key: 'motorbike', share: .20, len: 1.2, geo: partsGeo([[1.2, .38, .32, 0, .3, 0, 0xffffff], [.34, .55, .3, -.1, .75, 0, 0xd8def5]]) },
+  { key: 'bus', share: .15, len: 4.2, geo: partsGeo([[4.2, 1.15, 1.25, 0, .58, 0, 0xffffff], [4.22, .32, 1.27, 0, .82, 0, 0x5d67a0]]) },
+  { key: 'truck', share: .20, len: 3.7, geo: partsGeo([[1.1, 1.0, 1.15, 1.3, .5, 0, 0xffffff], [2.6, 1.25, 1.2, -.55, .63, 0, 0xc9d1f0]]) },
+];
+function vtypeOf(vid) { const u = hash(vid, 911); let acc = 0; for (let i = 0; i < VTYPES.length; i++) { acc += VTYPES[i].share; if (u < acc) return i; } return 0; }
+function boxM(w, h, d, x, y, z, color) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color })); m.position.set(x, y, z); return m; }
+function beaconM(color, x, y, z) { const m = new THREE.Mesh(new THREE.SphereGeometry(.32, 10, 8), new THREE.MeshBasicMaterial({ color })); m.position.set(x, y, z); return m; }
+// emergency convoy (the ambulance keeps its own model); every member's route is recorded from corridor.py
+const FLEET_STYLE = {
+  police: { label: 'Police patrol', cls: 'pol', build: () => [boxM(2.6, .65, 1.25, 0, .33, 0, 0xEAF2FF), boxM(2.62, .2, 1.27, 0, .45, 0, 0x2B59FF), boxM(1.3, .5, 1.15, -.15, .9, 0, 0x1c2a66)], beacons: [[0x3f8bff, 0, 1.25, .35], [0xff3348, 0, 1.25, -.35]] },
+  fire: { label: 'Fire engine', cls: 'fire', build: () => [boxM(4.6, 1.55, 1.6, 0, .78, 0, 0xFF3B3B), boxM(1.3, 1.3, 1.62, 1.75, .66, 0, 0xFF6060), boxM(3.6, .18, .5, -.4, 1.66, 0, 0xEAF2FF), boxM(4.62, .18, 1.62, 0, .45, 0, 0xffffff)], beacons: [[0xff3348, 1.9, 1.48, .4], [0xffffff, 1.9, 1.48, -.4]] },
+  army: { label: 'Army convoy', cls: 'army', build: () => [boxM(1.2, 1.15, 1.35, 1.6, .58, 0, 0x6B7F3A), boxM(2.9, 1.55, 1.4, -.5, .78, 0, 0x8A9A55), boxM(2.92, .16, 1.42, -.5, 1.6, 0, 0x55652c)], beacons: [[0xFFC93C, 2.2, 1.25, .5], [0xFFC93C, 2.2, 1.25, -.5]] },
+};
+const styleOf = key => FLEET_STYLE[key.indexOf('army') === 0 ? 'army' : key] || FLEET_STYLE.army;
+// flags in fleet tracks: 1 warned, 2 recomputing route, 4 passed Betrawati, 8 saw the blockage, 16 missed the junction, 32 no route, 64 arrived
+function trackAt(a, t) {
+  if (!a || !a.length || t < a[0][0]) return null;
+  let lo = 0, hi = a.length - 1;
+  if (t >= a[hi][0]) { const p = a[Math.max(0, hi - 1)]; return { x: a[hi][1] * 10, y: a[hi][2] * 10, dx: a[hi][1] - p[1], dy: a[hi][2] - p[2], f: a[hi][3] }; }
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (a[m][0] <= t) lo = m; else hi = m; }
+  const A = a[lo], B = a[hi], k = (t - A[0]) / ((B[0] - A[0]) || 1);
+  return { x: lerp(A[1], B[1], k) * 10, y: lerp(A[2], B[2], k) * 10, dx: B[1] - A[1], dy: B[2] - A[2], f: A[3] };
+}
+function parkPos(idx) {   // convoy waiting at the Bidur staging ground, lined up behind the ambulance
+  const a = VL.pts[0], b = VL.pts[Math.min(4, VL.pts.length - 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, back = (idx + 1) * 170;
+  return [a[0] - dx / l * back, a[1] - dy / l * back, dx, dy];
+}
+// FIX 3: the earthquake ripple moves the terrain in the vertex shader; everything that sits on the
+// terrain must ride the same wave, or it is buried in the damage zone.
+function rippleAt(xw, zw) {
+  if (LEGACY || !stage.tu) return 0;
+  const q = stage.tu.uQuake.value; if (!q.z) return 0;
+  const dq = Math.hypot(xw - q.x, zw - q.y);
+  return q.z * Math.sin(dq * 0.42 - stage.tu.uTime.value * 8.0) * Math.exp(-dq / 70.0);
+}
+function surfaceY(xw, zw) { return Wy(heightAt(xw * 100 + CX, -zw * 100 + CY)) + rippleAt(xw, zw); }
+function ripplify(m) {
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uQuake = stage.tu.uQuake; sh.uniforms.uTime = stage.tu.uTime;
+    sh.vertexShader = 'uniform vec3 uQuake;\nuniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n{ float dq = distance(transformed.xz, uQuake.xy); transformed.y += uQuake.z * sin(dq * 0.42 - uTime * 8.0) * exp(-dq / 70.0); }');
+  };
+}
+/* ------------------------------------------------------------ main 3D stage */
+const canvas = $('stage');
+let renderer = null, scene, camera, composer = null, bloom = null, GL_OK = true;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.info.autoReset = false;   // count the whole frame (all bloom passes), reset once per frame
+} catch (e) { GL_OK = false; $('nogl').hidden = false; }
+if (GL_OK) canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); log('error', 'render', 'WebGL context lost: the GPU reset or ran out of memory; reload the page', {}); });
+else log('error', 'render', 'WebGL is unavailable in this browser; only the windows will work', {});
+const HORIZON = new THREE.Color(0x1d1650);
+const stage = { lastN: 0, vehN: 0, vehPos: [], fleetPos: [], fleet: [] };
+const T0 = performance.now();
+if (GL_OK) {
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x070a22);
+  camera = new THREE.PerspectiveCamera(42, 1, 0.5, 6000);
+  scene.add(new THREE.HemisphereLight(0x8fa8ff, 0x1a1040, 0.9));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(-120, 200, 90); scene.add(sun);
+  // sky dome: deep indigo zenith, violet horizon, a faint aurora band
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(3000, 32, 16), new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false,
+    vertexShader: `varying vec3 vP; void main(){ vP=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader: `varying vec3 vP; void main(){ float y=vP.y; vec3 top=vec3(0.02,0.03,0.10), hor=vec3(0.11,0.08,0.30);
+      vec3 c=mix(hor,top,smoothstep(-0.05,0.55,y));
+      float band=exp(-pow((y-0.10)*9.0,2.0))*(0.55+0.45*sin(atan(vP.z,vP.x)*3.0));
+      c+=band*mix(vec3(0.05,0.35,0.30),vec3(0.35,0.10,0.40),0.5+0.5*sin(atan(vP.z,vP.x)*1.7))*0.55;
+      gl_FragColor=vec4(c,1.0); }`,
+  })));
+  // stars
+  { const N = 900, P = new Float32Array(N * 3), r = mulberry(5);
+    for (let i = 0; i < N; i++) { const th = r() * Math.PI * 2, y = 0.08 + r() * 0.92, s = Math.sqrt(1 - y * y); P.set([Math.cos(th) * s * 2800, y * 2800, Math.sin(th) * s * 2800], i * 3); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xcfd8ff, size: 1.3, sizeAttenuation: false, transparent: true, opacity: .75, depthWrite: false }))); }
+  // ops floor: neon grid under the hologram
+  stage.gu = { uTime: { value: 0 } };
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShaderMaterial({
+    uniforms: stage.gu, transparent: true, depthWrite: false,
+    vertexShader: `varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+    fragmentShader: `uniform float uTime; varying vec3 vW;
+      float grid(vec2 p, float s){ vec2 g=abs(fract(p/s-0.5)-0.5)/fwidth(p/s); return 1.0-min(min(g.x,g.y),1.0); }
+      void main(){ float d=length(vW.xz); float g=grid(vW.xz,12.0)*0.55+grid(vW.xz,60.0)*0.9;
+        vec3 c=mix(vec3(0.30,0.45,1.0),vec3(0.65,0.35,1.0),0.5+0.5*sin(d*0.01-uTime*0.4));
+        float a=g*(1.0-smoothstep(150.0,1400.0,d))*0.55; gl_FragColor=vec4(c*a,a); }`,
+    extensions: { derivatives: true },
+  }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = Wy(330); scene.add(floor);
+
+  // the hologram: dark surface, aurora contour light, rim glow, earthquake ripple, boot reveal
+  const pos = new Float32Array((NX + 1) * (NY + 1) * 3), elev = new Float32Array((NX + 1) * (NY + 1));
+  for (let j = 0; j <= NY; j++) for (let i = 0; i <= NX; i++) {
+    const k = j * (NX + 1) + i, x = BB.minx + i / NX * (BB.maxx - BB.minx), y = BB.miny + j / NY * (BB.maxy - BB.miny);
+    pos[k * 3] = Wx(x); pos[k * 3 + 1] = Wy(HG[k]); pos[k * 3 + 2] = Wz(y); elev[k] = HG[k];
+  }
+  const idx = [];
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) { const a = j * (NX + 1) + i, b = a + 1, c = a + NX + 1, d = c + 1; idx.push(a, b, c, b, d, c); }
+  const tg = new THREE.BufferGeometry();
+  tg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); tg.setAttribute('elev', new THREE.BufferAttribute(elev, 1));
+  tg.setIndex(idx); tg.computeVertexNormals();
+  stage.tu = {
+    uSun: { value: new THREE.Vector3(-0.55, 0.75, 0.38).normalize() }, uFog: { value: HORIZON.clone() },
+    uFogNear: { value: 380 }, uFogFar: { value: 1500 }, uHaz: { value: new THREE.Vector2(0, 0) },
+    uHazR: { value: 10 }, uHazAmt: { value: 0 }, uTime: { value: 0 }, uReveal: { value: REDUCED ? 9999 : 300 },
+    uQuake: { value: new THREE.Vector3(0, 0, 0) },
+  };
+  const tmat = new THREE.ShaderMaterial({
+    uniforms: stage.tu, extensions: { derivatives: true },
+    vertexShader: `attribute float elev; varying float vH; varying vec3 vN; varying vec3 vW; uniform vec3 uQuake; uniform float uTime;
+      void main(){ vec3 p=position; float dq=distance(p.xz,uQuake.xy);
+        p.y+=uQuake.z*sin(dq*0.42-uTime*8.0)*exp(-dq/70.0);
+        vH=elev; vN=normal; vec4 w=modelMatrix*vec4(p,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+    fragmentShader: `uniform vec3 uSun; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar; uniform vec2 uHaz; uniform float uHazR; uniform float uHazAmt; uniform float uReveal;
+      varying float vH; varying vec3 vN; varying vec3 vW;
+      vec3 aur(float h){ float t=clamp((h-500.0)/3000.0,0.0,1.0);
+        vec3 c=mix(vec3(0.18,0.90,0.65),vec3(0.30,0.55,1.0),smoothstep(0.0,0.22,t));
+        c=mix(c,vec3(0.61,0.36,1.0),smoothstep(0.22,0.48,t)); c=mix(c,vec3(1.0,0.31,0.85),smoothstep(0.48,0.76,t));
+        return mix(c,vec3(1.0,0.79,0.24),smoothstep(0.76,1.0,t)); }
+      void main(){
+        vec3 N=normalize(vN); vec3 A=aur(vH);
+        float d=clamp(dot(N,uSun),0.0,1.0);
+        vec3 c=(vec3(0.030,0.040,0.110)+A*0.055)*(0.55+0.9*d);
+        float h1=vH/100.0, f1=fract(h1), g1=min(f1,1.0-f1), a1=fwidth(h1); float l1=1.0-smoothstep(0.5*a1,1.5*a1,g1);
+        float h5=vH/500.0, f5=fract(h5), g5=min(f5,1.0-f5), a5=fwidth(h5); float l5=1.0-smoothstep(0.5*a5,1.9*a5,g5);
+        vec3 V=normalize(cameraPosition-vW); float fr=pow(1.0-max(dot(N,V),0.0),3.0);
+        vec3 glow=A*(l1*0.30+l5*0.95)+A*fr*0.10;
+        c+=glow*(1.0-smoothstep(uReveal-80.0,uReveal,vH));
+        float hd=distance(vW.xz,uHaz);
+        c+=vec3(1.0,0.30,0.37)*(1.0-smoothstep(uHazR*0.93,uHazR,hd))*uHazAmt*0.10;
+        c+=vec3(1.0,0.30,0.37)*(1.0-smoothstep(0.0,max(0.5,uHazR*0.014),abs(hd-uHazR)))*uHazAmt*1.3;
+        float fd=length(cameraPosition-vW); c=mix(c,uFog,smoothstep(uFogNear,uFogFar,fd)*0.85);
+        gl_FragColor=vec4(c,1.0); }`,
+  });
+  stage.terrain = new THREE.Mesh(tg, tmat); scene.add(stage.terrain);
+
+  // the Trishuli as flowing light
+  stage.ru = { uTime: stage.tu.uTime, uQuake: stage.tu.uQuake };
+  stage.river = ribbon(densify(RL.pts, 90), 150, 8, new THREE.ShaderMaterial({
+    uniforms: stage.ru, transparent: true, side: THREE.DoubleSide, depthWrite: false,
+    vertexShader: `uniform vec3 uQuake; uniform float uTime; attribute float aS; varying float vS; void main(){ vS=aS; vec3 p=position; float dq=distance(p.xz,uQuake.xy); p.y+=uQuake.z*sin(dq*0.42-uTime*8.0)*exp(-dq/70.0); gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
+    fragmentShader: `uniform float uTime; varying float vS; void main(){ float s=fract(vS/420.0-uTime*0.30);
+      vec3 c=mix(vec3(0.10,0.55,0.62),vec3(0.70,1.0,1.0),smoothstep(0.80,0.98,s)); gl_FragColor=vec4(c,0.95); }`,
+  }));
+  scene.add(stage.river);
+  // roads as light rails: NH42 valley (blue), NH18 hill via Dhunche (violet)
+  const roadMat = c => { const m = new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }); m.polygonOffset = true; m.polygonOffsetFactor = -2; if (!LEGACY) ripplify(m); return m; };
+  scene.add(ribbon(densify(valleyPts, 60), 95, 22, roadMat(C.roadV)));
+  scene.add(ribbon(densify(GR.routes.hill, 60), 90, 26, roadMat(C.roadH)));
+  // places: light pins
+  Object.entries(named).forEach(([k, p]) => {
+    const base = V3(p[0], p[1], 30);
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 9, 6), new THREE.MeshBasicMaterial({ color: C.white }));
+    pin.position.copy(base).add(new THREE.Vector3(0, 4.5, 0)); scene.add(pin);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.75, 14, 10), new THREE.MeshBasicMaterial({ color: C.white })); orb.position.copy(base).add(new THREE.Vector3(0, 9, 0)); scene.add(orb);
+    addLabel(k, '', () => V3(p[0], p[1], 760));
+  });
+  const vm = VL.pts[Math.floor(VL.pts.length * (sJ + (1 - sJ) * 0.45))], hm = HL.pts[Math.floor(HL.pts.length * 0.35)];
+  addLabel('Valley road, NH42', 'route v', () => V3(vm[0], vm[1], 420));
+  addLabel('Hill road via Dhunche, NH18', 'route', () => V3(hm[0], hm[1], 420));
+  // non-emergency traffic, one instanced mesh per type (unlit, so the bloom makes them glow)
+  stage.types = VTYPES.map(vt => {
+    const m = new THREE.InstancedMesh(vt.geo, new THREE.MeshBasicMaterial({ vertexColors: true }), 600);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; scene.add(m);
+    for (let i = 0; i < 600; i++) { dummy.position.set(0, -999, 0); dummy.scale.setScalar(0); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); m.setColorAt(i, tmpC.set(C.veh)); }
+    return { mesh: m, len: vt.len, n: 0, last: 0 };
+  });
+  const amb = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.6, 1.8), new THREE.MeshBasicMaterial({ color: 0xffffff })); body.position.y = 0.8; amb.add(body);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(3.64, 0.35, 1.84), new THREE.MeshBasicMaterial({ color: C.red })); stripe.position.y = 0.8; amb.add(stripe);
+  stage.beaconR = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff3348 })); stage.beaconR.position.set(0.4, 1.9, 0.45); amb.add(stage.beaconR);
+  stage.beaconB = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 8), new THREE.MeshBasicMaterial({ color: 0x3f8bff })); stage.beaconB.position.set(0.4, 1.9, -0.45); amb.add(stage.beaconB);
+  amb.scale.setScalar(1.35); scene.add(amb); stage.amb = amb;
+  stage.trailGeo = new THREE.BufferGeometry();
+  stage.trail = new THREE.Line(stage.trailGeo, new THREE.LineBasicMaterial({ color: 0xff6b78 })); scene.add(stage.trail);
+  addLabel('Ambulance', 'amb', () => stage.amb.visible ? stage.amb.position.clone().add(new THREE.Vector3(0, 5.5, 0)) : null);
+  addLabel('Road blocked', 'hz', () => (state.t >= 30 && state.tr) ? V3(state.tr.hazard_mid[0], state.tr.hazard_mid[1], 420) : null);
+  // bloom (falls back to a plain render if the post-processing scripts are missing)
+  if (FX && THREE.EffectComposer && THREE.RenderPass && THREE.UnrealBloomPass) {
+    try {
+      composer = new THREE.EffectComposer(renderer);
+      composer.addPass(new THREE.RenderPass(scene, camera));
+      bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.85, 0.5, 0.58);
+      composer.addPass(bloom);
+    } catch (e) { composer = null; log('warn', 'render', 'bloom disabled, falling back to a plain render', { error: String(e) }); }
+  }
+}
+function ribbon(pts, width, lift, mat) {
+  const n = pts.length, pos = new Float32Array(n * 6), aS = new Float32Array(n * 2), idx = [];
+  let acc = 0;
+  for (let i = 0; i < n; i++) {
+    if (i) acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+    for (let s = 0; s < 2; s++) {
+      const sg = s ? 1 : -1, x = pts[i][0] + nx * width / 2 * sg, y = pts[i][1] + ny * width / 2 * sg, k = (i * 2 + s) * 3;
+      pos[k] = Wx(x); pos[k + 1] = Wy(heightAt(x, y) + lift); pos[k + 2] = Wz(y); aS[i * 2 + s] = acc;
+    }
+    if (i < n - 1) { const q = i * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aS', new THREE.BufferAttribute(aS, 1));
+  g.setIndex(idx); g.computeVertexNormals();
+  return new THREE.Mesh(g, mat);
+}
+function disposeGroup(g) {
+  if (!g) return;
+  g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
+  if (g.parent) g.parent.remove(g);
+}
+function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const ONCE = {}; function addOnce(k, f) { if (!ONCE[k]) { ONCE[k] = 1; f(); } }
+
+/* trace-dependent scene parts: roadside units, hazard, ambulance trail */
+function buildTraceScene(tr) {
+  if (!GL_OK) return;
+  disposeGroup(stage.rsuG); disposeGroup(stage.hz && stage.hz.g);
+  const rg = new THREE.Group(); scene.add(rg); stage.rsuG = rg;
+  const mastGeo = new THREE.CylinderGeometry(0.14, 0.22, 3.6, 6), headGeo = new THREE.SphereGeometry(0.55, 12, 8), ringGeo = new THREE.RingGeometry(0.95, 1, 72);
+  const R = tr.params.rsu_range_m / 100;
+  stage.rsu = tr.rsu.xy.map((p, i) => {
+    const g = new THREE.Group(); g.position.copy(V3(p[0], p[1], 15));
+    const mast = new THREE.Mesh(mastGeo, new THREE.MeshLambertMaterial({ color: C.mast })); mast.position.y = 1.8; g.add(mast);
+    const head = new THREE.Mesh(headGeo, new THREE.MeshBasicMaterial({ color: C.green })); head.position.y = 3.7; g.add(head);
+    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: C.green, transparent: true, opacity: .35, side: THREE.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.6; ring.scale.setScalar(R); g.add(ring);
+    rg.add(g);
+    return { g, head, ring, alive: !!tr.rsu.alive[i], dist: Math.hypot(p[0] - tr.hazard_mid[0], p[1] - tr.hazard_mid[1]) };
+  });
+  const hz = { g: new THREE.Group(), type: tr.hazard };
+  scene.add(hz.g);
+  const [a, b] = tr.hazard_edge, m = tr.hazard_mid;
+  const tl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ux = (b[0] - a[0]) / tl, uy = (b[1] - a[1]) / tl;
+  let nx = -uy, ny = ux;
+  if (heightAt(m[0] + nx * 900, m[1] + ny * 900) < heightAt(m[0] - nx * 900, m[1] - ny * 900)) { nx = -nx; ny = -ny; }
+  hz.block = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 3.6), new THREE.MeshBasicMaterial({ color: C.red }));
+  hz.block.position.copy(V3(m[0], m[1], 30)); hz.block.rotation.y = -Math.atan2(-uy, ux); hz.g.add(hz.block);
+  hz.beam = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 60, 8, 1, true), new THREE.MeshBasicMaterial({ color: C.red, transparent: true, opacity: .55, depthWrite: false }));
+  hz.beam.position.copy(V3(m[0], m[1], 30)).add(new THREE.Vector3(0, 30, 0)); hz.g.add(hz.beam);
+  const rnd = mulberry(tr.hazard === 'landslide' ? 7 : tr.hazard === 'flood' ? 11 : 3);
+  if (tr.hazard === 'landslide') {
+    const N = 420, geo = new THREE.BoxGeometry(0.75, 0.75, 0.75);
+    hz.debris = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff }), N);
+    hz.debris.instanceMatrix.setUsage(THREE.DynamicDrawUsage); hz.debris.frustumCulled = false;
+    const cols = [0xFF6A3D, 0xFF4D5E, 0xFFB347, 0xFF8A3D, 0xFFC93C, 0xC2412D];
+    hz.p = [];
+    for (let i = 0; i < N; i++) {
+      const s1 = 500 + 1100 * rnd(), t1 = (rnd() - .5) * 700, s2 = (rnd() - .35) * 260, t2 = (rnd() - .5) * 520;
+      const sx = m[0] + nx * s1 + ux * t1, sy = m[1] + ny * s1 + uy * t1, ex = m[0] + nx * s2 + ux * t2, ey = m[1] + ny * s2 + uy * t2;
+      hz.p.push({ src: V3(sx, sy, 30), dst: V3(ex, ey, 18 + 45 * rnd()), d: rnd() * .45, r: rnd() * 6, k: .55 + rnd() * .9 });
+      hz.debris.setColorAt(i, tmpC.set(cols[i % cols.length]));
+    }
+    hz.g.add(hz.debris);
+    const sc = []; for (let k = 0; k <= 12; k++) { const f = k / 12; sc.push([m[0] + nx * lerp(1500, -40, f), m[1] + ny * lerp(1500, -40, f)]); }
+    hz.scar = ribbon(sc, 650, 14, new THREE.MeshBasicMaterial({ color: 0xFF5A3D, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    hz.g.add(hz.scar);
+  } else if (tr.hazard === 'earthquake') {
+    hz.rings = [0, 1, 2, 3].map(i => { const r = new THREE.Mesh(new THREE.RingGeometry(0.94, 1, 128), new THREE.MeshBasicMaterial({ color: i % 2 ? C.magenta : C.red, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })); r.rotation.x = -Math.PI / 2; r.position.copy(V3(m[0], m[1], 220)); hz.g.add(r); return r; });
+    const N = 340, P = new Float32Array(N * 3); hz.dust0 = [];
+    for (let i = 0; i < N; i++) { const ang = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * 1800, x = m[0] + Math.cos(ang) * rr, y = m[1] + Math.sin(ang) * rr; const v = V3(x, y, 20); hz.dust0.push([v.x, v.y, v.z, rnd()]); P.set([v.x, v.y, v.z], i * 3); }
+    const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    hz.dust = new THREE.Points(dg, new THREE.PointsMaterial({ color: 0xFF7A3D, size: 0.85, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); hz.g.add(hz.dust);
+    const cr = [];
+    for (let k = 0; k < 8; k++) { let x = m[0] + (rnd() - .5) * 900, y = m[1] + (rnd() - .5) * 900; for (let s = 0; s < 6; s++) { const x2 = x + (rnd() - .5) * 260, y2 = y + (rnd() - .5) * 260; cr.push(V3(x, y, 24), V3(x2, y2, 24)); x = x2; y = y2; } }
+    hz.cracks = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(cr), new THREE.LineBasicMaterial({ color: 0xff3d55, transparent: true, opacity: 0 })); hz.g.add(hz.cracks);
+  } else {
+    const sH = nearest(VL, m[0], m[1])[1];
+    hz.front0 = VL.L; hz.front1 = Math.max(sJ * VL.L * 0.6, sH * VL.L - 4000);
+    hz.fu = { uFront: { value: VL.L + 1 }, uTime: { value: 0 } };
+    hz.flood = ribbon(densify(valleyPts, 120), 950, 24, new THREE.ShaderMaterial({
+      uniforms: hz.fu, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      vertexShader: `attribute float aS; varying float vS; void main(){ vS=aS; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `uniform float uFront; uniform float uTime; varying float vS;
+        void main(){ if(vS<uFront) discard; float foam=1.0-smoothstep(0.0,800.0,vS-uFront); float rip=0.5+0.5*sin(vS/90.0-uTime*6.0);
+          vec3 c=mix(vec3(0.06,0.55,0.55),vec3(0.75,1.0,0.98),foam*0.9+rip*0.08); gl_FragColor=vec4(c,0.82); }`,
+    }));
+    hz.g.add(hz.flood);
+    const top = VL.pts[VL.pts.length - 1];
+    addOnce('flood', () => addLabel('Surge from upstream', 'hz', () => (state.tr && state.tr.hazard === 'flood' && state.t >= 0) ? V3(top[0], top[1], 640) : null));
+  }
+  hz.mW = new THREE.Vector2(Wx(m[0]), Wz(m[1]));
+  stage.hz = hz;
+  stage.tu.uHaz.value.copy(hz.mW); stage.tu.uHazR.value = tr.params.footprint_m / 100;
+  const ap = new Float32Array(tr.amb.length * 3);
+  tr.amb.forEach((s, i) => { const v = V3(s[1] * 10, s[2] * 10, 70); ap.set([v.x, v.y, v.z], i * 3); });
+  stage.trailGeo.setAttribute('position', new THREE.BufferAttribute(ap, 3)); stage.trailGeo.setDrawRange(0, 0);
+  disposeGroup(stage.fleetG); stage.fleetG = new THREE.Group(); scene.add(stage.fleetG);
+  stage.fleet = (tr.fleet || []).map((f, idx) => {
+    const st = styleOf(f.key), g = new THREE.Group(); st.build().forEach(m => g.add(m));
+    const bs = st.beacons.map(b => { const m = beaconM(b[0], b[1], b[2], b[3]); g.add(m); return m; });
+    stage.fleetG.add(g); return { f, g, bs, idx };
+  });
+  addOnce('fleetLabels', () => [['police', 'Police patrol', 'pol'], ['fire', 'Fire engine', 'fire'], ['army1', 'Army convoy', 'army']].forEach(([key, text, cls]) =>
+    addLabel(text, cls, () => { const F = stage.fleet.find(q => q.f.key === key); return F && state.t >= F.f.dispatch_s ? F.g.position.clone().add(new THREE.Vector3(0, 5.5, 0)) : null; })));
+}
+
+function updateStage(t, time) {
+  const tr = state.tr; if (!GL_OK || !tr) return;
+  stage.tu.uTime.value = time; stage.ru.uTime.value = time; stage.gu.uTime.value = time;
+  if (!REDUCED) stage.tu.uReveal.value = lerp(300, 4200, easeIO(clamp((performance.now() - T0) / 2200, 0, 1)));
+  const P = t > 0 ? clamp(t / 240, 0, 1) : 0;
+  stage.tu.uHazAmt.value = t >= 0 ? smooth(0, .25, P) : 0;
+  const bcast = tr.mode.indexOf('RSU') >= 0 && tr.rsu_t != null && t >= tr.rsu_t;
+  for (const r of stage.rsu) {
+    if (!LEGACY) r.g.position.y = surfaceY(r.g.position.x, r.g.position.z) + 0.2;
+    if (!r.alive) {
+      const k = t >= 0 ? clamp(P * 1.9 - r.dist / Math.max(1, tr.params.footprint_m) * 0.7, 0, 1) : 0;
+      r.g.rotation.z = -easeIO(k) * 1.35;
+      r.head.material.color.set(k <= 0 ? C.green : k < .55 ? (Math.floor(time * 12) % 2 ? C.red : 0xffffff) : C.dead);
+      r.ring.material.opacity = .35 * (1 - k);
+    } else {
+      r.g.rotation.z = 0; r.head.material.color.set(bcast ? C.yellow : C.green);
+      r.ring.material.color.set(bcast ? C.yellow : C.green);
+      const pulse = bcast ? (time * 0.8 + r.dist / 2500) % 1 : 0;
+      r.ring.scale.setScalar(tr.params.rsu_range_m / 100 * (bcast ? 0.6 + pulse * 0.9 : 1));
+      r.ring.material.opacity = bcast ? .65 * (1 - pulse) : .3;
+    }
+  }
+  const hz = stage.hz;
+  hz.block.visible = t >= 30;
+  hz.beam.visible = t >= 30; hz.beam.material.opacity = .35 + .25 * Math.sin(time * 3);
+  stage.tu.uQuake.value.set(hz.mW.x, hz.mW.y, 0);
+  let shake = 0;
+  if (hz.type === 'landslide') {
+    const N = hz.p.length;
+    for (let i = 0; i < N; i++) {
+      const q = hz.p[i], pi = t >= 0 ? clamp((P - q.d) / .5, 0, 1) : 0;
+      if (pi <= 0) { dummy.scale.setScalar(0); dummy.position.set(0, -999, 0); }
+      else { const e = pi * pi; dummy.position.lerpVectors(q.src, q.dst, e); dummy.position.y += Math.sin(Math.PI * pi) * 1.4; dummy.rotation.set(q.r * pi, q.r * 1.3 * pi, 0); dummy.scale.setScalar(q.k); }
+      dummy.updateMatrix(); hz.debris.setMatrixAt(i, dummy.matrix);
+    }
+    hz.debris.instanceMatrix.needsUpdate = true;
+    if (hz.debris.instanceColor) hz.debris.instanceColor.needsUpdate = true;
+    hz.scar.material.opacity = .45 * smooth(.05, .6, P);
+  } else if (hz.type === 'earthquake') {
+    hz.rings.forEach((r, i) => { const q = clamp(P * 2.6 - i * .28, 0, 1); r.scale.setScalar(2 + q * 170); r.material.opacity = t >= 0 && q > 0 && q < 1 ? .9 * (1 - q) : 0; });
+    const pa = hz.dust.geometry.attributes.position;
+    for (let i = 0; i < hz.dust0.length; i++) { const d0 = hz.dust0[i]; pa.setXYZ(i, d0[0], d0[1] + P * (2 + d0[3] * 9), d0[2]); }
+    pa.needsUpdate = true; hz.dust.material.opacity = t >= 0 ? .38 * smooth(0, .08, P) * (1 - smooth(.35, 1, P)) : 0;
+    hz.cracks.material.opacity = t >= 0 ? smooth(.03, .2, P) : 0;
+    if (t >= 0 && P < .75) { stage.tu.uQuake.value.z = REDUCED ? 0 : 2.2 * (1 - P / .75); shake = REDUCED ? 0 : .55 * (1 - P / .75); }
+  } else {
+    hz.fu.uTime.value = time;
+    hz.fu.uFront.value = t >= 0 ? lerp(hz.front0, hz.front1, 1 - Math.pow(1 - P, 2)) : VL.L + 1;
+  }
+  stage.shake = shake;
+  // civilian vehicles: recorded positions, interpolated between 60 s frames; just-warned vehicles flare.
+  // FIX 1: the recording ends when the last convoy truck arrives -- hold the last recorded frame
+  //        instead of letting every vehicle vanish on the final stretch of the timeline.
+  // FIX 4: models have their base at y=0, so scaling them up for far zoom never pushes them underground.
+  const tv = LEGACY ? t : Math.min(t, tr.tLastFrame);
+  const fi = (tv - tr.tStart) / tr.frame_dt, ff = Math.floor(fi), fr = fi - ff;
+  const big = LEGACY ? clamp(cam.r / 110, 1, 3.2) : clamp(cam.r / 90, 1, 8);
+  stage.types.forEach(T => { T.n = 0; });
+  stage.vehPos = [];
+  for (const k of tr.tracks) {
+    if (k.amb || fi < k.f0 || ff > k.last) continue;
+    const T = stage.types[k.type]; if (T.n >= 600) continue;
+    const cnt = k.xy.length / 2, r = clamp(ff - k.f0, 0, cnt - 1), r2 = Math.min(r + 1, cnt - 1);
+    const x0 = k.xy[2 * r] * 10, y0 = k.xy[2 * r + 1] * 10, x1 = k.xy[2 * r2] * 10, y1 = k.xy[2 * r2 + 1] * 10;
+    const x = lerp(x0, x1, r2 > r ? fr : 0), y = lerp(y0, y1, r2 > r ? fr : 0);
+    const stuck = k.stuck >= 0 && ff >= k.stuck, fresh = k.inf >= 0 && ff >= k.inf && ff - k.inf < 2;
+    const sc = big * (fresh ? 1.6 + .3 * Math.sin(time * 9) : stuck ? 1.3 : 1);
+    const xw = Wx(x), zw = Wz(y);
+    const base = LEGACY ? Wy(heightAt(x, y) + 30) + .5 - .45 * sc : surfaceY(xw, zw) + 0.3 + (stuck ? 1.2 : 0);
+    dummy.position.set(xw, base, zw);
+    dummy.rotation.set(0, (x1 !== x0 || y1 !== y0) ? Math.atan2(y1 - y0, x1 - x0) : 0, 0);
+    dummy.scale.setScalar(sc); dummy.updateMatrix(); T.mesh.setMatrixAt(T.n, dummy.matrix);
+    T.mesh.setColorAt(T.n, tmpC.set(stuck ? C.stuck : (k.inf >= 0 && ff >= k.inf) ? C.yellow : C.veh)); T.n++;
+    stage.vehPos.push([xw, zw, base, T.len * sc]);
+  }
+  stage.types.forEach(T => {
+    for (let i = T.n; i < T.last; i++) { dummy.position.set(0, -999, 0); dummy.scale.setScalar(0); dummy.updateMatrix(); T.mesh.setMatrixAt(i, dummy.matrix); }
+    T.last = T.n; T.mesh.instanceMatrix.needsUpdate = true; if (T.mesh.instanceColor) T.mesh.instanceColor.needsUpdate = true;
+  });
+  stage.vehN = stage.vehPos.length; API.nVeh = stage.vehN;
+  const A = ambAt(tr, t), asc = 1.35 * clamp(cam.r / 120, 1, 2.6);
+  let ax, ay;
+  if (!A) { const p0 = named.Bidur || [tr.amb[0][1] * 10, tr.amb[0][2] * 10]; ax = p0[0]; ay = p0[1]; stage.amb.rotation.y = 0; stage.beaconR.visible = stage.beaconB.visible = false; stage.trailGeo.setDrawRange(0, 0); }
+  else {
+    ax = A.x; ay = A.y; if (A.dx || A.dy) stage.amb.rotation.y = Math.atan2(A.dy, A.dx);
+    const on = !A.s[9] && !A.s[8], blink = Math.floor(time * 5) % 2 === 0;
+    stage.beaconR.visible = on && blink; stage.beaconB.visible = on && !blink; stage.trailGeo.setDrawRange(0, A.i + 1);
+  }
+  { const xw = Wx(ax), zw = Wz(ay); stage.amb.position.set(xw, LEGACY ? Wy(heightAt(ax, ay) + 34) : surfaceY(xw, zw) + 0.25, zw); stage.amb.scale.setScalar(asc); }
+  stage.amb.visible = true;
+  stage.fleetPos = [];
+  if (A && !A.s[9]) stage.fleetPos.push(['ambulance', stage.amb.position.x, stage.amb.position.z, stage.amb.position.y]);
+  for (const F of stage.fleet) {
+    const S = trackAt(F.f.track, t);
+    let x, y, dx = 0, dy = 0, moving = false, done = false;
+    if (!S) { const p = parkPos(F.idx); x = p[0]; y = p[1]; dx = p[2]; dy = p[3]; }
+    else { x = S.x; y = S.y; dx = S.dx; dy = S.dy; done = !!(S.f & 64); moving = !done && !(S.f & 32); }
+    const xw = Wx(x), zw = Wz(y);
+    F.g.position.set(xw, LEGACY ? Wy(heightAt(x, y) + 34) : surfaceY(xw, zw) + 0.25, zw);
+    F.g.scale.setScalar(asc);
+    if (dx || dy) F.g.rotation.y = Math.atan2(dy, dx);
+    const blink = Math.floor(time * 5 + F.idx) % 2 === 0;
+    F.bs.forEach((bm, i) => { bm.visible = moving && (i % 2 === 0 ? blink : !blink); });
+    F.g.visible = true;
+    if (S && !done) stage.fleetPos.push([F.f.key, xw, zw, F.g.position.y]);
+  }
+  simEvents(tr, t);
+}
+function simEvents(tr, t) {   // the story's events, logged once each while the story plays
+  if (!state.playing) { stage.evT = t; return; }
+  const prev = stage.evT == null ? t : stage.evT; stage.evT = t;
+  const cross = x => x != null && prev < x && t >= x;
+  if (cross(0)) log('info', 'sim', 'hazard strikes', { hazard: tr.hazard, footprint_km: tr.params.footprint_m / 1000, roadside_units_lost: tr.dead });
+  if (cross(tr.tInf)) log('info', 'sim', 'first civilian vehicle warned', { minutes_after_hazard: +(tr.tInf / 60).toFixed(1) });
+  if (cross(tr.rsu_t)) log('info', 'sim', 'surviving roadside units start broadcasting the warning', {});
+  if (cross(tr.amb.length ? tr.amb[0][0] : null)) log('info', 'sim', 'ambulance dispatched from Bidur', {});
+  if (cross(tr.tAmbInf)) log('info', 'sim', 'ambulance warned', {});
+  if (cross(tr.tPass)) log(tr.summary.missed_junction ? 'warn' : 'info', 'sim', tr.summary.missed_junction ? 'ambulance passed Betrawati before the warning reached it' : 'ambulance passed Betrawati already warned', {});
+  if (cross(tr.tSeen)) log('warn', 'sim', 'ambulance reached the blockage and must turn back', {});
+  if (cross(tr.tArr)) log('info', 'sim', 'ambulance arrived at Syaphrubesi', { arrival_min: tr.summary.arrival_min, extra_min: tr.summary.extra_min });
+  for (const f of (tr.fleet || [])) {
+    const L = f.track.length ? f.track[f.track.length - 1][0] : null;
+    if (cross(f.dispatch_s)) log('info', 'sim', f.label + ' dispatched from Bidur', {});
+    if (cross(L)) log('info', 'sim', f.label + ' arrived', { arrival_min: f.summary.arrival_min });
+  }
+}
+
+/* ------------------------------------------------------------ camera */
+const cam = { target: new THREE.Vector3(), r: 300, th: 0, ph: 1, tw: null, free: false, follow: false };
+function applyCam(shake) {
+  if (!GL_OK) return;
+  const sp = Math.sin(cam.ph);
+  camera.position.set(cam.target.x + cam.r * sp * Math.sin(cam.th), cam.target.y + cam.r * Math.cos(cam.ph), cam.target.z + cam.r * sp * Math.cos(cam.th));
+  if (shake) camera.position.add(new THREE.Vector3((Math.random() - .5) * shake, (Math.random() - .5) * shake, (Math.random() - .5) * shake));
+  camera.lookAt(cam.target);
+}
+function viewFor(step) {
+  const tr = state.tr, ext = Math.max(BB.maxx - BB.minx, BB.maxy - BB.miny) / 100;
+  const hm = V3(tr.hazard_mid[0], tr.hazard_mid[1]), bt = named.Betrawati ? V3(named.Betrawati[0], named.Betrawati[1]) : hm;
+  const sy = named.Syaphrubesi ? V3(named.Syaphrubesi[0], named.Syaphrubesi[1]) : hm;
+  const center = new THREE.Vector3(0, Wy(1200), 0);
+  switch (step) {
+    case 0: return { t: center.clone().add(new THREE.Vector3(-20, 0, -25)), r: ext * 1.32, th: -0.35, ph: 0.78 };
+    case 1: return { t: hm, r: 70, th: 0.6, ph: 0.95 };
+    case 2: return { t: hm, r: 150, th: 0.25, ph: 0.85 };
+    case 3: case 4: return { t: hm, r: 115, th: -0.2, ph: 0.9 };
+    case 5: return { t: hm.clone().lerp(bt, .5), r: 200, th: -0.3, ph: 0.82 };
+    case 6: return { t: bt, r: 80, th: -0.5, ph: 0.9, follow: true };
+    default: return { t: sy, r: 100, th: 0.3, ph: 0.92, follow: true };
+  }
+}
+function goView(v, instant) {
+  cam.free = false; cam.follow = !!v.follow;
+  const to = { t: v.t.clone(), r: v.r, th: v.th, ph: v.ph };
+  if (instant || REDUCED) { cam.target.copy(to.t); cam.r = to.r; cam.th = to.th; cam.ph = to.ph; cam.tw = null; return; }
+  let dth = to.th - cam.th; while (dth > Math.PI) dth -= 2 * Math.PI; while (dth < -Math.PI) dth += 2 * Math.PI;
+  cam.tw = { from: { t: cam.target.clone(), r: cam.r, th: cam.th, ph: cam.ph }, to: { t: to.t, r: to.r, th: cam.th + dth, ph: to.ph }, t0: performance.now(), dur: 1500 };
+}
+function stepCam(now) {
+  if (cam.tw) {
+    const k = easeIO(clamp((now - cam.tw.t0) / cam.tw.dur, 0, 1)), f = cam.tw.from, to = cam.tw.to;
+    cam.target.lerpVectors(f.t, to.t, k); cam.r = lerp(f.r, to.r, k); cam.th = lerp(f.th, to.th, k); cam.ph = lerp(f.ph, to.ph, k);
+    if (k >= 1) cam.tw = null;
+  } else if (cam.follow && !cam.free && stage.amb && stage.amb.visible && state.t >= state.tr.params.dispatch_s) {
+    cam.target.lerp(stage.amb.position, 0.06);
+  }
+}
+let drag = null;
+if (GL_OK) {
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; canvas.setPointerCapture(e.pointerId); cam.free = true; cam.tw = null; });
+  canvas.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+    if (drag.pan) {
+      const s = cam.r * 0.0016, fwd = new THREE.Vector3(Math.sin(cam.th), 0, Math.cos(cam.th)), right = new THREE.Vector3(fwd.z, 0, -fwd.x);
+      cam.target.addScaledVector(right, -dx * s).addScaledVector(fwd, -dy * s);
+    } else { cam.th -= dx * 0.005; cam.ph = clamp(cam.ph - dy * 0.004, 0.18, 1.45); }
+  });
+  const end = () => { drag = null; };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); cam.free = true; cam.tw = null; cam.r = clamp(cam.r * Math.exp(e.deltaY * 0.0011), 18, 1400); }, { passive: false });
+}
+
+/* ------------------------------------------------------------ the cell (558 m ring) */
+const cellV = { ready: false };
+function buildCell(cv) {
+  try {
+    const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true }); r.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    const sc = new THREE.Scene(); sc.background = new THREE.Color(0x0B0F33);
+    const cm = new THREE.PerspectiveCamera(36, 1, 1, 2000); cm.position.set(0, 175, 205); cm.lookAt(0, -8, 0);
+    sc.add(new THREE.HemisphereLight(0x9fb0ff, 0x1a1040, 1.0)); const dl = new THREE.DirectionalLight(0xffffff, .5); dl.position.set(-80, 160, 60); sc.add(dl);
+    const L = CELL.L, R = L / (2 * Math.PI);
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(R + 70, 64), new THREE.MeshBasicMaterial({ color: 0x141a4a })); ground.rotation.x = -Math.PI / 2; sc.add(ground);
+    const road = new THREE.Mesh(new THREE.RingGeometry(R - 7, R + 7, 160), new THREE.MeshBasicMaterial({ color: 0x2f5fcf })); road.rotation.x = -Math.PI / 2; road.position.y = .2; sc.add(road);
+    const ang = x => x / L * Math.PI * 2;
+    const rsu = CELL.edge_x.map(x => {
+      const a = ang(x), g = new THREE.Group(); g.position.set(Math.cos(a) * (R + 20), 0, Math.sin(a) * (R + 20));
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.6, 18, 8), new THREE.MeshLambertMaterial({ color: C.mast })); mast.position.y = 9; g.add(mast);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(3.2, 12, 8), new THREE.MeshBasicMaterial({ color: C.green })); head.position.y = 19; g.add(head);
+      const cov = new THREE.Mesh(new THREE.CircleGeometry(CELL.d_max, 40), new THREE.MeshBasicMaterial({ color: C.green, transparent: true, opacity: .14, depthWrite: false }));
+      cov.rotation.x = -Math.PI / 2; cov.position.set(Math.cos(a) * R - g.position.x, .5, Math.sin(a) * R - g.position.z); g.add(cov);
+      sc.add(g); return { g, head, cov };
+    });
+    const veh = new THREE.InstancedMesh(new THREE.BoxGeometry(9, 3.6, 4.6), new THREE.MeshBasicMaterial({ color: 0xffffff }), CELL.V);
+    veh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); sc.add(veh);
+    const em = new Set(CELL.emergency), tav = new Set(CELL.tav);
+    const mark = new THREE.Mesh(new THREE.RingGeometry(6.5, 8.2, 40), new THREE.MeshBasicMaterial({ color: C.yellow, side: THREE.DoubleSide })); mark.rotation.x = -Math.PI / 2; sc.add(mark);
+    const cloud = new THREE.Group(); [[0, 0, 0, 9], [9, 1, 2, 7], [-9, 0, -1, 7]].forEach(q => { const s = new THREE.Mesh(new THREE.SphereGeometry(q[3], 14, 10), new THREE.MeshBasicMaterial({ color: 0xbfa8ff, transparent: true, opacity: .85 })); s.position.set(q[0], q[1], q[2]); cloud.add(s); });
+    cloud.position.set(0, 70, -10); sc.add(cloud);
+    const tcol = [C.blue, C.green, C.yellow, C.violet];
+    const pk = []; for (let i = 0; i < 12; i++) { const s = new THREE.Mesh(new THREE.SphereGeometry(2.6, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })); s.visible = false; sc.add(s); pk.push(s); }
+    Object.assign(cellV, { r, sc, cm, rsu, veh, em, tav, mark, cloud, pk, tcol, R, L, ang, ready: true, cv });
+  } catch (e) { cv.replaceWith(Object.assign(document.createElement('p'), { className: 'muted', textContent: 'The 3D cell view needs WebGL.' })); }
+}
+function cellPos(x, dir) { const a = cellV.ang(x), rr = cellV.R + (dir > 0 ? 3.2 : -3.2); return [Math.cos(a) * rr, Math.sin(a) * rr, a]; }
+function renderCell(frac) {
+  if (!cellV.ready || !WINS.cell || !WINS.cell.open) return;
+  const cv = cellV.cv, w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+  if (cv.width !== Math.round(w * cellV.r.getPixelRatio())) { cellV.r.setSize(w, h, false); cellV.cm.aspect = w / h; cellV.cm.updateProjectionMatrix(); }
+  const tk = CELL.ticks, k = state.cellTick, rec = tk[k], nxt = tk[Math.min(k + 1, tk.length - 1)];
+  for (let i = 0; i < CELL.V; i++) {
+    let x0 = rec.x[i], x1 = nxt.x[i]; const L = cellV.L;
+    if (x1 - x0 > L / 2) x1 -= L; else if (x0 - x1 > L / 2) x1 += L;
+    const p = cellPos(lerp(x0, x1, frac), CELL.dir[i]);
+    dummy.position.set(p[0], 2.2, p[1]); dummy.rotation.set(0, -p[2] - Math.PI / 2 * (CELL.dir[i] > 0 ? -1 : 1), 0);
+    dummy.scale.setScalar(i === rec.i ? 1.45 : 1); dummy.updateMatrix(); cellV.veh.setMatrixAt(i, dummy.matrix);
+    cellV.veh.setColorAt(i, tmpC.set(cellV.em.has(i) ? C.red : cellV.tav.has(i) ? C.veh : C.green));
+  }
+  cellV.veh.instanceMatrix.needsUpdate = true; if (cellV.veh.instanceColor) cellV.veh.instanceColor.needsUpdate = true;
+  rec.alive.forEach((a, s) => { const r = cellV.rsu[s]; r.g.rotation.z = a ? 0 : -1.1; r.head.material.color.set(a ? C.green : C.dead); r.cov.material.opacity = a ? .14 : 0; });
+  const me = cellPos(rec.x[rec.i], CELL.dir[rec.i]); cellV.mark.position.set(me[0], .6, me[1]);
+  cellV.pk.forEach(s => { s.visible = false; });
+  if (rec.n && rec.real) {
+    rec.real.slice(0, cellV.pk.length).forEach((tgt, j) => {
+      const s = cellV.pk[j], e = easeIO(clamp(frac * 1.25 - j * .04, 0, 1)); let to;
+      if (tgt === 0 && rec.s >= 0) { const g = cellV.rsu[rec.s].g.position; to = new THREE.Vector3(g.x, 19, g.z); }
+      else if (tgt === 1 && rec.sev >= 0) { const q = cellPos(rec.x[rec.sev], CELL.dir[rec.sev]); to = new THREE.Vector3(q[0], 4, q[1]); }
+      else if (tgt === 3) to = cellV.cloud.position.clone();
+      else to = new THREE.Vector3(me[0], 9 + 6 * Math.sin(frac * Math.PI), me[1]);
+      s.position.lerpVectors(new THREE.Vector3(me[0], 4, me[1]), to, e); s.material.color.set(cellV.tcol[tgt]); s.visible = true;
+    });
+  }
+  cellV.r.render(cellV.sc, cellV.cm);
+}
+
+/* ------------------------------------------------------------ windows */
+const WIN_DEFS = [
+  { id: 'replica', tag: 'R', title: 'Replica: MEPPO decides', side: 'L', w: 318, hue: '#4C8DFF' },
+  { id: 'c1', tag: 'C1', title: 'C1: safety floor', side: 'L', w: 318, hue: '#FFC93C' },
+  { id: 'c3', tag: 'C3', title: 'C3: roadside units', side: 'L', w: 318, hue: '#2EE6A6' },
+  { id: 'cell', tag: 'Cell', title: 'Inside one 558 m cell', side: 'L', w: 318, hue: '#9B5CFF' },
+  { id: 'run', tag: 'Run', title: 'What you are watching', side: 'L', w: 318, hue: '#EAF2FF' },
+  { id: 'c2', tag: 'C2', title: 'C2: why this placement', side: 'R', w: 336, hue: '#EAF2FF' },
+  { id: 'n2', tag: 'N2', title: 'N2: casualty priority', side: 'R', w: 336, hue: '#FF4FD8' },
+  { id: 'n1', tag: 'N1', title: 'N1: emergency response', side: 'R', w: 336, hue: '#FF4D5E' },
+  { id: 'log', tag: 'Log', title: 'Log and self-test', side: 'R', w: 372, hue: '#C9B6FF' },
+];
+const WINS = {}; let zTop = 11;
+const winsEl = $('wins'), dockEl = $('dock');
+const narrow = () => matchMedia('(max-width: 960px)').matches;
+WIN_DEFS.forEach(def => {
+  const el = document.createElement('section'); el.className = 'win'; el.hidden = true;
+  el.style.setProperty('--hue', def.hue);
+  el.setAttribute('role', 'region'); el.setAttribute('aria-label', def.title); el.style.width = def.w + 'px';
+  el.innerHTML = `<div class="wt"><span class="wtag">${def.tag}</span><h2>${esc(def.title)}</h2><button class="wx" type="button" aria-label="Close ${esc(def.title)}">×</button></div><div class="wb"></div>`;
+  winsEl.appendChild(el);
+  const W = { def, el, body: el.querySelector('.wb'), open: false, pinned: false, auto: false };
+  WINS[def.id] = W;
+  el.querySelector('.wx').addEventListener('click', () => closeWin(def.id));
+  el.addEventListener('pointerdown', () => { el.style.zIndex = ++zTop; });
+  const bar = el.querySelector('.wt'); let dd = null;
+  bar.addEventListener('pointerdown', e => { if (narrow() || e.target.closest('.wx')) return; dd = { x: e.clientX - el.offsetLeft, y: e.clientY - el.offsetTop }; bar.setPointerCapture(e.pointerId); });
+  bar.addEventListener('pointermove', e => { if (!dd) return; W.pinned = true; el.style.left = clamp(e.clientX - dd.x, 0, innerWidth - 80) + 'px'; el.style.top = clamp(e.clientY - dd.y, 50, innerHeight - 60) + 'px'; });
+  bar.addEventListener('pointerup', () => { dd = null; });
+  const b = document.createElement('button'); b.className = 'dockb'; b.type = 'button'; b.textContent = def.tag; b.title = def.title;
+  b.style.setProperty('--hue', def.hue);
+  b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', 'Show or hide ' + def.title);
+  b.addEventListener('click', () => (W.open ? closeWin(def.id) : openWin(def.id, false)));
+  dockEl.appendChild(b); W.dock = b;
+});
+WINS.cell.body.innerHTML = '<canvas class="cellcv" aria-label="Ring road of one cell with eight roadside units and thirty vehicles"></canvas><div class="small muted" id="cellInfo"></div><div class="keys"><span><i style="background:#8197E0"></i>task vehicle</span><span><i style="background:#2EE6A6"></i>service vehicle</span><span><i style="background:#FF4D5E"></i>emergency vehicle</span></div>';
+let logFilter = 'all';
+WINS.log.body.addEventListener('click', e => {
+  const f = e.target.closest('[data-logf]'); if (f) { logFilter = f.dataset.logf; WINS.log._h = null; renderWindows(true); return; }
+  const a = e.target.closest('[data-logact]'); if (!a) return;
+  if (a.dataset.logact === 'test') { a.disabled = true; a.textContent = 'Running...'; setTimeout(() => { selfTest(); WINS.log._h = null; renderWindows(true); }, 40); }
+  else if (a.dataset.logact === 'copy') copyLog();
+  else if (a.dataset.logact === 'dl') downloadLog();
+  else if (a.dataset.logact === 'clear') { LOG.length = 0; log('info', 'ui', 'log cleared'); WINS.log._h = null; renderWindows(true); }
+});
+function logText() { return JSON.stringify({ run: META.run_id, mode: META.mode, url: location.href.split('#')[0], userAgent: navigator.userAgent, selftest: API.selftest || null, entries: LOG }, null, 1); }
+function copyLog() {
+  const txt = logText(), ok = () => log('info', 'ui', 'log copied to the clipboard', { entries: LOG.length });
+  const fallback = () => { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); let r = false; try { r = document.execCommand('copy'); } catch (x) { r = false; } ta.remove(); if (r) ok(); else log('warn', 'ui', 'the browser blocked copying; use Download instead'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, fallback); else fallback();
+}
+function downloadLog() {
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([logText()], { type: 'application/json' })); a.download = 'eptask_demo_log.json'; document.body.appendChild(a); a.click(); a.remove(); log('info', 'ui', 'log download started (if no file appears, this viewer blocks downloads: use Copy)'); }
+  catch (x) { log('warn', 'ui', 'download failed', { error: String(x) }); }
+}
+function openWin(id, auto) {
+  const W = WINS[id]; if (W.open) { flash(W); return; }
+  W.open = true; W.auto = auto; W.el.hidden = false; W.dock.setAttribute('aria-pressed', 'true'); W.el.style.zIndex = ++zTop;
+  if (id === 'cell' && !cellV.ready && GL_OK) buildCell(W.body.querySelector('canvas'));
+  renderWindows(true); layout(); if (!auto) flash(W);
+}
+function closeWin(id) { const W = WINS[id]; W.open = false; W.el.hidden = true; W.dock.setAttribute('aria-pressed', 'false'); layout(); }
+function flash(W) { W.el.classList.add('flash'); setTimeout(() => W.el.classList.remove('flash'), 600); }
+function layout() {
+  if (narrow()) { $('narr').style.bottom = ''; return; }
+  const top0 = $('bar').offsetHeight + 8, maxB = innerHeight - $('journey').offsetHeight - 8;
+  $('narr').style.bottom = ($('journey').offsetHeight + 10) + 'px';
+  for (const side of ['L', 'R']) {
+    const ws = WIN_DEFS.filter(d => d.side === side).map(d => WINS[d.id]).filter(W => W.open && !W.pinned);
+    ws.forEach(W => { W.el.style.maxHeight = ''; });
+    const avail = maxB - top0 - 10 * Math.max(0, ws.length - 1);
+    const hs = ws.map(W => W.el.offsetHeight), tot = hs.reduce((p, q) => p + q, 0);
+    let y = top0;
+    ws.forEach((W, i) => {
+      if (tot > avail) W.el.style.maxHeight = Math.max(120, Math.floor(avail * hs[i] / tot)) + 'px';   // share the height, scroll inside
+      W.el.style.left = side === 'L' ? '14px' : (innerWidth - W.def.w - 14) + 'px';
+      W.el.style.top = y + 'px'; y += W.el.offsetHeight + 10;
+    });
+  }
+}
+const rows = (arr) => arr.join('');
+function curRec() { return CELL.ticks[state.cellTick]; }
+function reasonOf(r) { if (!r.prot) return ''; if (r.key === 'ASIL-D') return 'safety-critical (ASIL-D)'; if (r.role === 1) return 'emergency vehicle'; if (r.role === 2) return 'Immediate casualty tier'; return 'protected'; }
+function classOf(r) { return r.role === 1 ? 'Emergency vehicle' : r.role === 2 ? `Sensor report, ${TIER[r.tier] || 'no'} tier` : `Ordinary request, ${r.key}`; }
+function fmtNum(v, d) { return v == null || !isFinite(v) ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(d); }
+function rReplica() {
+  const r = curRec();
+  if (!r.n) return `<p class="muted">Vehicle ${r.i} has nothing to send in this second.</p>`;
+  const body = r.p.map((pr, j) => `<tr><td class="mono">${j + 1}</td><td><span class="stack">${pr.map((v, k) => `<i class="b${k}${r.a[j] === k ? ' on' : ''}" style="width:${(v * 100).toFixed(1)}%"></i>`).join('')}</span></td><td>${TGT[r.real[j]]}${r.real[j] !== r.a[j] ? ' <span class="muted small">(fallback)</span>' : ''}</td><td class="mono">L${r.lvl[j]}</td></tr>`);
+  return `<p>Vehicle ${r.i} sends ${r.n} task${r.n > 1 ? 's' : ''}. ${classOf(r)}. Roadside unit ${r.edge_ok ? 'in range' : '<b class="bad">out of reach</b>'}; nearby vehicle ${r.sev >= 0 ? 'available' : 'none'}.</p>
+    <table class="t"><tr><th>task</th><th>policy probabilities</th><th>runs on</th><th>level</th></tr>${rows(body)}</table>
+    <div class="keys">${TGT.map((t, k) => `<span><i class="b${k}"></i>${t}</span>`).join('')}</div>
+    <p class="small muted" style="margin-top:6px">Model B (DR-MEPPO), exported ONNX, deterministic choices. Model A's reward tracked latency at corr ${fmtNum(RES.training && RES.training.A && RES.training.A.corr_reward_minusT, 2)} in this run.</p>`;
+}
+function rC1() {
+  const r = curRec(), lv = r.lvl || [];
+  const ladder = [];
+  for (let L = 9; L >= 0; L--) { const dots = lv.map((v, j) => v === L ? `<span class="pip${r.prot ? ' p' : ''}" title="task ${j + 1}"></span>` : '').join(''); ladder.push(`<div class="lv">L${L}</div><div class="row${L === CELL.floor_level ? ' res' : ''}">${dots}${L === CELL.floor_level ? '<span class="note">reserved for protected work</span>' : ''}</div>`); }
+  const arm = RES.c1 && RES.c1.random && RES.c1.random.paired && RES.c1.random.paired['floor ON, V7.1 (level 9 reserved)'];
+  const counts = RES.c1 && RES.c1.random ? RES.c1.random.counts : [];
+  const up = RES.c1 && RES.c1.uplink_busy_pct ? Object.entries(RES.c1.uplink_busy_pct).map(([k, v]) => `V=${k}: ${v.toFixed(1)}%`).join(', ') : 'n/a';
+  return `<p>${r.n ? (r.prot ? `<b>Protected</b>: ${reasonOf(r)}. Every task is lifted to the reserved top level.` : `Not protected (${esc(r.key)}). Tasks spread over levels 0 to 8 by the learned ranking.`) : 'No request this second.'}</p>
+    <div class="ladder">${rows(ladder)}</div>
+    <p class="small">Notebook, paired over seeds with the random policy: the floor cuts ASIL-D latency by ${arm ? counts.map((V, i) => `V=${V} ${ci(arm.T_gain[i], 1, '%')}`).join('; ') : 'n/a'}.</p>
+    <p class="small muted">Why the gain is small: a vehicle's uplink is still busy at its next request only ${up} of the time, so queue order rarely matters.</p>`;
+}
+function rC2() {
+  const r = curRec();
+  if (!r.n || !r.cf) return `<p class="muted">No placement to explain in this second.</p>`;
+  const k = r.kx, mx = Math.max(...r.cf, 0.001), chosen = r.a[k];
+  const body = r.cf.map((v, j) => `<tr><td style="width:96px">${TGT[j]}</td><td><div class="hbar${r.cfi[j] ? ' bad' : (j === chosen ? ' on' : '')}" style="width:${(v / mx * 100).toFixed(1)}%;--t0:var(--t${j})"></div></td><td class="mono" style="width:62px;text-align:right">${v.toFixed(2)} s</td></tr>`);
+  const best = r.cf.indexOf(Math.min(...r.cf));
+  return `<p>Task ${k + 1} is this request's largest. The policy sent it to <b>${TGT[chosen]}</b>${r.cfi[chosen] ? ', which is unreachable, so it falls back to on board' : ''}.</p>
+    <table class="t">${rows(body)}</table>
+    <p class="small muted" style="margin-top:6px">Each bar is the exact completion time had only this task moved there, computed with env.peek() on the same queues. Hatched means unreachable. Fastest here: ${TGT[best]}.</p>`;
+}
+function rC3() {
+  const r = curRec(), tr = state.tr, t = state.t;
+  const down = r.alive.filter(a => !a).length;
+  const alivePct = t < 30 ? 100 : 100 * (tr.rsu.alive.length - tr.dead) / Math.max(1, tr.rsu.alive.length);
+  const pol = ['model A (static)', 'model B (DR-MEPPO)', 'Local-only'];
+  const rowsN = RES.c3 && RES.c3.rows ? Object.values(RES.c3.rows).filter(x => pol.indexOf(x.policy) >= 0) : [];
+  return `<p>In the cell: ${down ? `<b class="bad">${down} of 8 units down</b>` : 'all 8 units working'}.</p>
+    <div class="lights">${r.alive.map((a, s) => `<span class="light${a ? '' : ' off'}" title="unit ${s + 1} ${a ? 'working' : 'down'}">${s + 1}</span>`).join('')}</div>
+    <p>Along the valley: <b>${alivePct.toFixed(0)}%</b> of ${tr.rsu.alive.length} roadside units still working (${(tr.params.footprint_m / 1000).toFixed(0)} km damage footprint).</p>
+    <table class="t"><tr><th>down</th><th>policy</th><th>extra vs own calm</th><th>time, calm → outage</th></tr>${rows(rowsN.map(x => `<tr><td class="mono">${x.k}</td><td>${esc(x.policy.replace(' (static)', '').replace(' (DR-MEPPO)', ''))}</td><td class="mono small">${x.during_pct && x.during_pct[0] != null ? x.during_pct[0].toFixed(1) + '%' : 'n/a'}</td><td class="mono small">${x.T_control && x.T_outage ? x.T_control[0].toFixed(2) + ' → ' + x.T_outage[0].toFixed(2) + ' s' : 'n/a'}</td></tr>`))}</table>
+    <p class="small muted" style="margin-top:6px">Each outage run is paired with the same world without it; Local-only must read exactly 0%. The percentage is relative to each policy's own calm time, so compare the seconds too: in this run model B is slower than A in calm traffic and in small outages, and faster only when 4 of 8 units are down.</p>`;
+}
+function rN1() {
+  const tr = state.tr, t = state.t, s = tr.summary, disp = tr.params.dispatch_s, A = ambAt(tr, t);
+  let st;
+  if (t < disp) st = 'On standby at Bidur. It leaves 10 minutes after the hazard.';
+  else if (!A) st = 'Leaving Bidur.';
+  else if (A.s[9]) st = `<b class="ok">Arrived at Syaphrubesi</b> after ${fmtMin(s.arrival_min)}.`;
+  else if (A.s[8]) st = '<b class="bad">No route left.</b>';
+  else if (A.s[6]) st = '<b class="bad">Reached the blockage itself</b> and is turning back.';
+  else if (A.s[4]) st = 'Warned; recomputing its route as an emergency request.';
+  else if (A.s[3]) st = '<b>Warned</b>; taking the detour.';
+  else st = 'Driving, not yet warned.';
+  const parts = [`<p>${st}</p>`];
+  if (tr.tPass != null && t >= tr.tPass) parts.push(`<p>Passed Betrawati ${fmtMin((tr.tPass - disp) / 60)} after leaving, ${s.missed_junction ? '<b class="bad">before the warning reached it</b>' : '<b class="ok">already warned</b>'}.</p>`);
+  if (t >= tr.tArr) parts.push(`<p>Knowing at departure it would have taken ${fmtMin(s.oracle_min)}; the late warning cost <b>${fmtMin(s.extra_min)}</b>. Civilian vehicles that drove into the blockage: ${s.trapped}.</p>`);
+  const cov = coverageAt(tr, t);
+  const pts = tr.coverage.filter(c => c[0] <= t && c[1] != null);
+  const span = Math.max(1, tr.tArr);
+  const poly = pts.map(c => `${(c[0] / span * 100).toFixed(1)},${(44 - c[1] * 40).toFixed(1)}`).join(' ');
+  parts.push(`<p class="small">Civilian vehicles warned so far: <b class="mono">${cov == null ? 'n/a' : (cov * 100).toFixed(0) + '%'}</b></p><svg class="spark" viewBox="0 0 100 46" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="44" x2="100" y2="44" stroke="rgba(160,178,255,.3)"/><polyline fill="none" stroke="#FFC93C" stroke-width="1.8" vector-effect="non-scaling-stroke" points="${poly}"/></svg>`);
+  const f10 = v => v[3] | v[4] << 1 | v[5] << 2 | v[6] << 3 | v[7] << 4 | v[8] << 5 | v[9] << 6;
+  const stat = (S, disp0) => { if (!S || t < disp0) return '<span class="muted">standby at Bidur</span>'; const f = S.f; if (f & 64) return '<span class="ok">arrived</span>'; if (f & 32) return '<span class="bad">no route</span>'; if (f & 8) return '<span class="bad">turning back</span>'; if (f & 2) return 'rerouting'; if (f & 1) return 'warned, en route'; return 'en route'; };
+  const convoy = [{ name: 'Ambulance', S: A ? { f: f10(A.s) } : null, d: disp, sum: s }].concat((tr.fleet || []).map(f => ({ name: f.label, S: trackAt(f.track, t), d: f.dispatch_s, sum: f.summary })));
+  parts.push(`<p class="small" style="margin-top:6px">Emergency convoy from Bidur. Each vehicle is simulated by corridor.py with the same blockage and traffic, one at a time:</p><table class="t"><tr><th>vehicle</th><th>now</th><th>trip</th></tr>${rows(convoy.map(v => `<tr><td>${esc(v.name)}</td><td class="small">${stat(v.S, v.d)}</td><td class="mono">${v.S && (v.S.f & 64) ? fmtMin(v.sum.arrival_min) : '-'}</td></tr>`))}</table>`);
+  const cmp = MODES.map(m => { const q = D.corridor[state.hazard + '|' + m].summary; return { m, v: q.extra_min }; });
+  const mx = Math.max(1, ...cmp.map(c => c.v || 0));
+  parts.push(`<p class="small" style="margin-top:6px">Extra minutes for the ambulance, same ${esc(META.hazards[state.hazard].label.toLowerCase())}, each warning network:</p><table class="t">${rows(cmp.map(c => `<tr${c.m === state.mode ? ' style="font-weight:650"' : ''}><td style="width:150px">${esc(MODE_LABEL[c.m])}</td><td><div class="hbar${c.m === state.mode ? ' on' : ''}" style="width:${Math.max(2, (c.v || 0) / mx * 100).toFixed(1)}%;--t0:#FF4D5E"></div></td><td class="mono" style="width:58px;text-align:right">${fmtMin(c.v)}</td></tr>`))}</table>`);
+  const ems = CELL.ticks.filter(r => r.role === 1 && r.n && r.t <= state.cellTick && r.Tt != null && r.t + r.Tt <= state.cellTick).slice(-3).reverse();
+  if (ems.length) parts.push(`<p class="small" style="margin-top:6px">Emergency vehicle's last requests in the cell: ${ems.map(r => `${r.Tt.toFixed(1)} s against a ${r.D.toFixed(1)} s deadline ${r.ok ? '<span class="ok">on time</span>' : '<span class="bad">late</span>'}`).join('; ')}.</p>`);
+  return parts.join('');
+}
+function rN2() {
+  const k = state.cellTick, dets = CELL.ticks.filter(r => r.role === 2 && r.n && r.t <= k);
+  const last = dets.slice(-6).reverse();
+  const done = dets.filter(r => r.Tt != null && r.t + r.Tt <= k);
+  const pAll = done.reduce((a, r) => a + r.ppl, 0), pOk = done.filter(r => r.ok).reduce((a, r) => a + r.ppl, 0);
+  const th = CELL.cwp_thresholds;
+  if (!dets.length) return `<p class="muted">No sensor reports yet. Reports start when the disaster window opens in the cell.</p><p class="small muted">Score = sensor weight × log(1 + estimated people), 0 to 9. Immediate at ${th[0]} or more gets the reserved top level.</p>`;
+  const body = last.map(r => { const fin = r.Tt != null && r.t + r.Tt <= k; return `<tr><td>${esc(CELL.modalities[r.mod] || '?')}</td><td class="mono">${r.est} <span class="muted">(${r.ppl})</span></td><td><span class="score" style="width:${(r.cwp / 9 * 46).toFixed(0)}px"></span> <span class="mono">${r.cwp.toFixed(1)}</span></td><td><span class="chip t${r.tier}">${TIER[r.tier]}</span></td><td>${fin ? (r.ok ? '<span class="ok">in time</span>' : '<span class="bad">late</span>') : '<span class="muted">running</span>'}</td></tr>`; });
+  return `<table class="t"><tr><th>sensor</th><th>people est. (true)</th><th>score</th><th>tier</th><th>outcome</th></tr>${rows(body)}</table>
+    <p style="margin-top:7px">Finished reports so far: <b class="mono">${pOk} of ${pAll}</b> people (true counts) were in reports handled before their deadline.</p>
+    <p class="small muted">Score = sensor weight × log(1 + estimated people), clipped to 0 to 9. Immediate (${th[0]} or more) gets the reserved top level. The sensor sees estimates; outcomes are scored on true counts.</p>`;
+}
+function rRun() {
+  const q = META.mode === 'FULL';
+  return `<p><b>${q ? 'Full run' : 'QUICK smoke test'}</b>, run ${esc(META.run_id)}, code ${esc(META.code_digest)}.</p>
+    <p>${q ? 'Numbers come from the FULL notebook run.' : 'This replays a QUICK run: it proves the whole pipeline works end to end. Its numbers are not results; regenerate this page from your FULL bundle.'}</p>
+    <p><b>Recorded</b>: every vehicle, the ambulance, warnings and roadside-unit losses on the valley (corridor.py, ${MODES.length} warning networks × 3 hazards, paired), and everything in the cell (env.py driven by the exported model B).</p>
+    <p><b>Emergency convoy</b>: ambulance, police patrol, fire engine and three army trucks. Each is simulated by corridor.py with the same blockage and traffic, one at a time, so they do not interact. Non-emergency vehicle types (cars, motorbikes, buses, trucks) are an assumed mix; their positions are recorded.</p>
+    <p><b>Illustration</b>: the holographic relief (schematic, not a survey map), the ripples, debris and water. The model represents every hazard as one blocked road plus the roadside units inside its damage footprint.</p>
+    <p class="small muted">Data: ${esc(META.data_mode)}. Road graph: ${esc(GR.source)}. Generated ${esc(META.generated)} by ${esc(META.generator)}.</p>`;
+}
+function rLog() {
+  const n = { info: 0, warn: 0, error: 0 }; LOG.forEach(e => { if (n[e.level] != null) n[e.level]++; });
+  const st = API.selftest;
+  const list = LOG.filter(e => logFilter === 'all' ? e.level !== 'debug' : e.level === logFilter).slice(-150).reverse();
+  const body = list.map(e => `<tr><td class="mono small">${(e.ts / 1000).toFixed(1)}s</td><td><span class="lv ${e.level}">${e.level}</span></td><td class="small">${esc(e.cat)}</td><td class="small">${esc(e.msg)}${e.ctx ? ` <span class="muted">[${esc(e.ctx.hz)}/${esc(e.ctx.mode)}/step ${e.ctx.step + 1}/t=${e.ctx.t}]</span>` : ''}</td></tr>`).join('');
+  return `<div class="logbar"><div class="seg">${['all', 'warn', 'error'].map(f => `<button type="button" data-logf="${f}" aria-pressed="${logFilter === f}">${f} ${f === 'all' ? LOG.length : n[f]}</button>`).join('')}</div>
+    <button type="button" class="btn" data-logact="test">Run self-test</button><button type="button" class="btn" data-logact="copy">Copy</button><button type="button" class="btn" data-logact="dl">Download</button><button type="button" class="btn" data-logact="clear">Clear</button></div>
+    ${st ? `<p class="${st.fails.length ? 'bad' : 'ok'}">Self-test${st.legacy ? ' (legacy mode)' : ''}: ${st.pass} of ${st.states} checks passed${st.fails.length ? `, ${st.fails.length} failed: see the warnings below` : ''}; ${st.jsErrors} script errors; ${(st.ms / 1000).toFixed(1)} s.</p>`
+      : '<p class="small muted">The self-test replays every hazard, warning network and step, plus the end of the timeline and both zoom extremes. It checks that every recorded vehicle is drawn, none sits under the terrain, every emergency vehicle on the road is visible, no frame is blank, and no script error occurs.</p>'}
+    <div class="logtbl"><table class="t">${body || '<tr><td class="muted">No entries for this filter.</td></tr>'}</table></div>`;
+}
+const RENDER = { replica: rReplica, c1: rC1, c2: rC2, c3: rC3, n1: rN1, n2: rN2, run: rRun, log: rLog };
+let lastRender = 0;
+function renderWindows(force) {
+  const now = performance.now(); if (!force && now - lastRender < 110) return; lastRender = now;
+  let changed = false;
+  for (const id in RENDER) { const W = WINS[id]; if (W.open) { const h = RENDER[id](); if (W._h !== h) { const h0 = W.el.offsetHeight; W.body.innerHTML = h; W._h = h; if (W.el.offsetHeight !== h0) changed = true; } } }
+  if (changed) layout();
+  if (WINS.cell.open) { const r = curRec(); const down = r.alive.filter(a => !a).length; $('cellInfo').textContent = `Cell clock ${r.t} s${down ? `, ${down} roadside units down` : ''}. Vehicle ${r.i} is sending now.`; }
+}
+
+/* ------------------------------------------------------------ story */
+function narration(i) {
+  const tr = state.tr, s = tr.summary, h = META.hazards[state.hazard], disp = tr.params.dispatch_s;
+  const hz = { earthquake: 'An earthquake ripples through the valley, knocks out roadside units across a wide area and blocks the valley road beyond Betrawati.', landslide: 'A landslide pours down onto the valley road (NH42) beyond Betrawati.', flood: 'A glacial outburst flood surges down the Trishuli and cuts the valley road.' }[state.hazard];
+  const warn = { NONE: 'There is no warning network: each driver learns of the blockage only by reaching it.', V2V: 'Vehicles that turned back at the blockage carry the warning south and relay it to vehicles within 300 m.', RSU: 'Surviving roadside units broadcast the warning once one of them has verified a report.', 'V2V+RSU': 'Vehicles relay the warning to each other, and surviving roadside units broadcast it once one has verified a report.' }[state.mode];
+  const N = [
+    ['Before', 'rec', 'Ordinary traffic on the Trishuli valley road. In every vehicle, MEPPO decides where each computing task runs: on board, at a roadside unit, on a nearby vehicle or in the cloud.', 'Replica of Li et al., EPtask (IEEE T-IV, 2024). Drag to look around; the windows follow the story.'],
+    [h.label, 'ill', hz, 'Illustration. The simulation sees one blocked road segment and the roadside units inside the damage footprint.'],
+    ['Roadside units lost', 'rec', `${tr.dead} of ${tr.rsu.alive.length} roadside units inside the ${(tr.params.footprint_m / 1000).toFixed(0)} km footprint stop working. In the cell, a block of three units goes dark and vehicles there lose their edge connection.`, 'C3 measures this against a paired run without the outage.'],
+    ['People found', 'rec', 'Vehicle sensors report trapped people. Each report gets a casualty score from the sensor type and the estimated head-count; the Immediate tier is guaranteed the top queue level.', 'N2. The sensor sees estimates; outcomes are scored on the true counts.'],
+    ['Scheduling under the outage', 'rec', 'The disaster-trained policy (model B) places every task. Emergency vehicles and safety-critical tasks keep the reserved top level. C2 shows why one placement beat the others.', 'C1 and N1 use the same deterministic floor; only the selection rule differs.'],
+    ['The warning spreads', 'rec', warn, `First civilian warned ${tr.tInf != null ? fmtMin(tr.tInf / 60) + ' after the hazard' : 'never'}. Yellow vehicles carry the warning; a vehicle flares when it receives it.`],
+    ['The decision at Betrawati', 'rec', `The ambulance left Bidur ${Math.round(disp / 60)} minutes after the hazard. At Betrawati it must choose between the blocked valley road and the hill road through Dhunche.`, tr.tAmbInf != null ? (s.missed_junction ? 'It was warned only after passing the junction, so it had to turn back.' : `It was warned ${fmtMin((tr.tAmbInf - disp) / 60)} after leaving, before the junction.`) : 'It received no warning and found the blockage itself.'],
+    ['Reaching the people', 'rec', `The ambulance reached Syaphrubesi after ${fmtMin(s.arrival_min)}, ${s.extra_min < 0.05 ? 'as fast as if it had known at departure' : fmtMin(s.extra_min) + ' later than if it had known at departure'}. Switch the warning network to compare.`, META.mode === 'FULL' ? 'Recorded from the FULL run.' : 'Replay of a QUICK smoke run: the numbers show the pipeline works; they are not results.'],
+  ];
+  return N[i];
+}
+function showNarration() {
+  const [title, tag, body, foot] = narration(state.step);
+  $('narrTitle').textContent = title; $('narrBody').textContent = body; $('narrFoot').textContent = foot;
+  const tg = $('narrTag'); tg.className = 'tag ' + tag; tg.textContent = tag === 'ill' ? 'Illustration' : 'Recorded';
+  document.querySelectorAll('.step').forEach((b, i) => { b.classList.toggle('done', i < state.step); if (i === state.step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+}
+function goStep(i, opts) {
+  opts = opts || {};
+  state.step = clamp(i, 0, STEPS.length - 1);
+  state.t = state.plan[state.step];
+  if (CELLPLAN[state.step] != null) { state.cellTick = CELLPLAN[state.step]; state.cellAcc = 0; }
+  for (const id in WINS) { const W = WINS[id]; if (W.open && W.auto && STEPS[state.step].win.indexOf(id) < 0) closeWin(id); }
+  STEPS[state.step].win.forEach(id => openWin(id, true));
+  if (GL_OK && !opts.keepCam) goView(viewFor(state.step), opts.instant);
+  state.dwellUntil = performance.now() + DWELL[state.step] * 1000 / Math.sqrt(state.speed);
+  showNarration(); renderWindows(true); syncScrub();
+  log('debug', 'step', 'step ' + (state.step + 1) + ': ' + STEPS[state.step].name, { t: Math.round(state.t) });
+}
+function setScenario(hz, mode) {
+  state.hazard = hz; state.mode = mode;
+  state.tr = prep(D.corridor[hz + '|' + mode]); state.plan = planFor(state.tr);
+  buildTraceScene(state.tr);
+  document.querySelectorAll('#hazardSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.h === hz)));
+  $('modeSel').value = mode;
+  log('info', 'scenario', META.hazards[hz].label + ', ' + MODE_LABEL[mode], { civilians: state.tr.tracks.length, convoy: (state.tr.fleet || []).length + 1, timeline_end_min: Math.round(state.tr.tEnd / 60) });
+  goStep(state.step, { keepCam: true });
+}
+function syncScrub() { const tr = state.tr; $('scrub').value = Math.round((state.t - tr.tStart) / (tr.tEnd - tr.tStart) * 1000); $('clock').textContent = fmtClock(state.t); }
+
+/* ------------------------------------------------------------ controls */
+const hs = $('hazardSeg');
+HZ.forEach(h => { const b = document.createElement('button'); b.type = 'button'; b.dataset.h = h; b.textContent = META.hazards[h].label; b.addEventListener('click', () => setScenario(h, state.mode)); hs.appendChild(b); });
+MODES.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = MODE_LABEL[m]; $('modeSel').appendChild(o); });
+$('modeSel').addEventListener('change', e => setScenario(state.hazard, e.target.value));
+const ss = $('speedSeg');
+[1, 2, 4, 8].forEach(v => { const b = document.createElement('button'); b.type = 'button'; b.textContent = v + '×'; b.setAttribute('aria-pressed', String(v === 1)); b.setAttribute('aria-label', 'Speed ' + v + ' times'); b.addEventListener('click', () => { state.speed = v; ss.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }); ss.appendChild(b); });
+function setPlaying(p) { state.playing = p; $('playBtn').textContent = p ? 'Pause' : (state.t >= state.tr.tEnd - 1 ? 'Replay' : 'Play the story'); }
+$('playBtn').addEventListener('click', () => { if (!state.playing && state.t >= state.tr.tEnd - 1) goStep(0); setPlaying(!state.playing); });
+$('viewBtn').addEventListener('click', () => goView(viewFor(state.step)));
+$('scrub').addEventListener('input', e => {
+  const tr = state.tr; state.t = tr.tStart + e.target.value / 1000 * (tr.tEnd - tr.tStart);
+  let s = 0; state.plan.forEach((pt, i) => { if (state.t >= pt) s = i; });
+  if (s !== state.step) { state.step = s; showNarration(); }
+  $('clock').textContent = fmtClock(state.t);
+});
+const stepsEl = $('steps');
+STEPS.forEach((s, i) => { const li = document.createElement('li'); const b = document.createElement('button'); b.className = 'step'; b.type = 'button'; b.innerHTML = `<span class="n">${i + 1}</span><span class="s">${esc(s.name)}</span>`; b.setAttribute('aria-label', `Step ${i + 1}: ${s.name}`); b.addEventListener('click', () => goStep(i)); li.appendChild(b); stepsEl.appendChild(li); });
+const pill = $('pill');
+pill.innerHTML = `<span class="dot"></span>Run ${esc(META.run_id)}, ${META.mode === 'FULL' ? 'full run' : 'QUICK smoke test'}`;
+if (META.mode === 'FULL') pill.classList.add('full');
+pill.addEventListener('click', () => openWin('run', false));
+addEventListener('keydown', e => {
+  if (e.target.closest('select,input,textarea')) return;
+  if (e.code === 'Space') { e.preventDefault(); $('playBtn').click(); }
+  else if (e.key === 'ArrowRight') goStep(state.step + 1);
+  else if (e.key === 'ArrowLeft') goStep(state.step - 1);
+  else if (/^[1-8]$/.test(e.key)) goStep(+e.key - 1);
+});
+function resize() {
+  if (GL_OK) {
+    renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+    if (composer) { composer.setSize(innerWidth, innerHeight); if (bloom) bloom.setSize(innerWidth, innerHeight); }
+  }
+  layout();
+}
+addEventListener('resize', resize);
+
+/* ------------------------------------------------------------ loop */
+let last = performance.now();
+function advance(dt, now) {
+  if (state.playing) {
+    const nextT = state.step + 1 < state.plan.length ? state.plan[state.step + 1] : Infinity;
+    let nt = state.t + dt * 60 * state.speed;
+    if (nt >= nextT) { if (now >= state.dwellUntil) { goStep(state.step + 1, {}); nt = state.t; } else nt = nextT - 0.01; }
+    state.t = Math.min(nt, state.tr.tEnd);
+    if (state.t >= state.tr.tEnd) setPlaying(false);
+    syncScrub();
+  }
+  state.cellAcc += dt * 4 * state.speed;
+  while (state.cellAcc >= 1) { state.cellAcc -= 1; state.cellTick = (state.cellTick + 1) % CELL.ticks.length; }
+}
+function renderAll(now) {
+  const time = now / 1000;
+  stepCam(now);
+  if (GL_OK) {
+    renderer.info.reset();
+    updateStage(state.t, time);
+    applyCam(stage.shake || 0);
+    if (composer) composer.render(); else renderer.render(scene, camera);
+    updateLabels();
+  }
+  renderCell(state.cellAcc);
+  renderWindows(false);
+}
+const PERF = { frames: 0, t0: performance.now(), fps: 0, low: 0, warned: false };
+const SEEN = new Set();
+const HUD = DEBUG ? (() => { const d = document.createElement('div'); d.id = 'hud'; document.body.appendChild(d); return d; })() : null;
+function hudText() {
+  const ri = GL_OK ? renderer.info.render : { calls: 0, triangles: 0 };
+  return `fps        ${PERF.fps.toFixed(0)}\ndraw calls ${ri.calls}\ntriangles  ${ri.triangles}\ncivilians  ${stage.vehN}\nemergency  ${stage.fleetPos.length} on the road\nbloom      ${!!composer}\nlegacy     ${LEGACY}\nerrors     ${ERR.length}`;
+}
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  try { advance(dt, now); renderAll(now); }
+  catch (e) { const m = String(e && e.message || e); ERR.push(String(e && e.stack || e)); if (!SEEN.has(m)) { SEEN.add(m); log('error', 'js', 'frame loop error: ' + m, { stack: String(e && e.stack || '').slice(0, 600) }); } }
+  PERF.frames++;
+  if (now - PERF.t0 >= 1000) {
+    PERF.fps = PERF.frames * 1000 / (now - PERF.t0); PERF.frames = 0; PERF.t0 = now;
+    PERF.low = PERF.fps < 20 ? PERF.low + 1 : 0;
+    if (PERF.low >= 3 && !PERF.warned && document.visibilityState === 'visible') { PERF.warned = true; log('warn', 'perf', 'low frame rate: add ?fx=0 to the address to turn the glow off', { fps: +PERF.fps.toFixed(1), bloom: !!composer, calls: GL_OK ? renderer.info.render.calls : null, triangles: GL_OK ? renderer.info.render.triangles : null }); }
+    if (HUD) HUD.textContent = hudText();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ------------------------------------------------------------ audit + self-test */
+function projLen(xw, zw, y, len) {
+  const a = new THREE.Vector3(xw - len / 2, y, zw).project(camera), b = new THREE.Vector3(xw + len / 2, y, zw).project(camera);
+  if (a.z > 1 || b.z > 1 || Math.abs(a.x) > 1 || Math.abs(a.y) > 1) return null;
+  return Math.hypot((a.x - b.x) * innerWidth / 2, (a.y - b.y) * innerHeight / 2);
+}
+function audit() {   // what SHOULD be on screen (from the trace) vs what IS drawn, after the last render
+  const tr = state.tr, t = state.t, r = { t: Math.round(t), expected: 0, rendered: stage.vehN, below: 0, nan: 0, fleetExpected: 0, fleetVisible: 0, fleetBelow: 0, medianPx: null };
+  if (!GL_OK) return r;
+  const tv = Math.min(t, tr.tLastFrame), fi = (tv - tr.tStart) / tr.frame_dt, ff = Math.floor(fi);
+  for (const k of tr.tracks) if (!k.amb && fi >= k.f0 && ff <= k.last) r.expected++;
+  const px = [];
+  for (const p of stage.vehPos) {
+    if (!isFinite(p[0] + p[1] + p[2] + p[3])) { r.nan++; continue; }
+    if (p[2] < surfaceY(p[0], p[1]) - 0.05) r.below++;
+    if (px.length < 80) { const L = projLen(p[0], p[1], p[2], p[3]); if (L != null) px.push(L); }
+  }
+  if (px.length) { px.sort((x, y) => x - y); r.medianPx = +px[px.length >> 1].toFixed(1); }
+  const A = ambAt(tr, t); if (A && !A.s[9]) r.fleetExpected++;
+  for (const F of stage.fleet) { const S = trackAt(F.f.track, t); if (S && !(S.f & 64)) r.fleetExpected++; }
+  for (const q of stage.fleetPos) { if (!isFinite(q[1] + q[2] + q[3])) continue; r.fleetVisible++; if (q[3] < surfaceY(q[1], q[2]) - 0.05) r.fleetBelow++; }
+  return r;
+}
+function selfTest() {
+  const T0s = performance.now(), out = { states: 0, pass: 0, fails: [], jsErrors: 0, legacy: LEGACY, ms: 0 };
+  const save = { hz: state.hazard, mode: state.mode, step: state.step, t: state.t, r: cam.r };
+  const e0 = ERR.length; setPlaying(false);
+  log('info', 'test', 'self-test started', { hazards: HZ.length, modes: MODES.length, legacy: LEGACY });
+  const check = (label, extra) => {
+    renderAll(performance.now());
+    const a = audit(), px = GL_OK ? API.pixelStats() : null, bad = [];
+    if (a.rendered !== a.expected) bad.push(`civilian vehicles drawn ${a.rendered} of ${a.expected} recorded`);
+    if (a.below) bad.push(`${a.below} vehicles under the terrain`);
+    if (a.nan) bad.push(`${a.nan} vehicles with invalid positions`);
+    if (a.fleetVisible !== a.fleetExpected) bad.push(`emergency vehicles drawn ${a.fleetVisible} of ${a.fleetExpected} on the road`);
+    if (a.fleetBelow) bad.push(`${a.fleetBelow} emergency vehicles under the terrain`);
+    if (px && px.std < 6) bad.push('blank or flat frame');
+    if (extra) bad.push(...extra(a));
+    out.states++;
+    if (bad.length) { out.fails.push({ state: label, problems: bad, audit: a }); log('warn', 'test', 'FAIL ' + label + ': ' + bad.join('; '), a); } else out.pass++;
+  };
+  for (const h of HZ) for (const m of MODES) {
+    setScenario(h, m);
+    const times = state.plan.concat([state.tr.tLastFrame, state.tr.tEnd]);
+    times.forEach((tt, i) => { goStep(Math.min(i, STEPS.length - 1), { instant: true }); state.t = tt; check(`${h} / ${m} / ${i < 8 ? 'step ' + (i + 1) : i === 8 ? 'last recorded minute' : 'end of timeline'}`); });
+  }
+  setScenario('landslide', 'V2V+RSU'); goStep(5, { instant: true }); cam.r = 1400;
+  check('zoom fully out', a => a.medianPx != null && a.medianPx < 3 ? [`vehicles only ${a.medianPx}px long`] : []);
+  goStep(1, { instant: true }); state.t = 30; cam.r = 18; check('zoom fully in at the blockage');
+  out.jsErrors = ERR.length - e0;
+  if (out.jsErrors) out.fails.push({ state: 'whole run', problems: [`${out.jsErrors} script errors`] });
+  out.ms = Math.round(performance.now() - T0s);
+  setScenario(save.hz, save.mode); goStep(save.step, { instant: true }); state.t = save.t; cam.r = save.r;
+  log(out.fails.length ? 'warn' : 'info', 'test', `self-test: ${out.pass} of ${out.states} checks passed` + (out.fails.length ? `, ${out.fails.length} failed` : ''), { fails: out.fails.length, ms: out.ms, legacy: LEGACY });
+  API.selftest = out; openWin('log', false); WINS.log._h = null; renderWindows(true);
+  return out;
+}
+/* ------------------------------------------------------------ boot */
+state.tr = prep(D.corridor[state.hazard + '|' + state.mode]); state.plan = planFor(state.tr);
+buildTraceScene(state.tr);
+document.querySelectorAll('#hazardSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.h === state.hazard)));
+$('modeSel').value = state.mode;
+resize();
+if (GL_OK) { const v = viewFor(0); goView({ t: v.t, r: v.r * 1.6, th: v.th - 0.5, ph: 0.6 }, true); }
+goStep(0);
+requestAnimationFrame(frame);
+Object.assign(API, {
+  goStep: i => goStep(i, { instant: true }), setScenario, setTime: t => { state.t = t; syncScrub(); }, setCell: k => { state.cellTick = k; },
+  open: id => openWin(id, false), render: () => { cam.tw = null; renderAll(performance.now()); },
+  pixelStats: () => {
+    if (!GL_OK) return null; renderAll(performance.now());
+    const c2 = document.createElement('canvas'); c2.width = 160; c2.height = 100; const x = c2.getContext('2d'); x.drawImage(canvas, 0, 0, 160, 100);
+    const d = x.getImageData(0, 0, 160, 100).data; let s = 0, s2 = 0; for (let i = 0; i < d.length; i += 4) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; }
+    const n = d.length / 4, m = s / n; return { mean: m, std: Math.sqrt(Math.max(0, s2 / n - m * m)) };
+  },
+  info: () => ({ hazard: state.hazard, mode: state.mode, step: state.step, t: state.t, nVeh: API.nVeh, emergencyOnRoad: stage.fleetPos.length, gl: GL_OK, bloom: !!composer, legacy: LEGACY, cell: state.cellTick, open: Object.keys(WINS).filter(k => WINS[k].open) }),
+  audit, selfTest, logText,
+});
+API.ready = true;
+log('info', 'boot', 'demo ready', { ms: Math.round(performance.now() - T_LOAD), webgl: GL_OK, bloom: !!composer, legacy: LEGACY, traces: Object.keys(D.corridor).length, cellTicks: CELL.ticks.length, run: META.run_id, mode: META.mode });
+if (LEGACY) log('warn', 'boot', 'legacy mode: the pre-fix vehicle placement is active (before/after testing only)');
+if (SELFTEST) { const go = () => setTimeout(selfTest, 300); if (document.readyState === 'complete') go(); else addEventListener('load', go); }   // never block the page's own load
+})();
+</script>
+</body>
+</html>
