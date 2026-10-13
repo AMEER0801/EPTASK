@@ -1,0 +1,11 @@
+{
+  "name": "eptask-api",
+  "version": "2.0.0",
+  "private": true,
+  "description": "EPtask simulation service (FastAPI). Started automatically by the platform dev flow; for manual start use: bash run.sh",
+  "scripts": {
+    "dev": "bash ensure_and_run.sh",
+    "start": "bash run.sh",
+    "test": "python3 -m pytest tests/ -q"
+  }
+}
