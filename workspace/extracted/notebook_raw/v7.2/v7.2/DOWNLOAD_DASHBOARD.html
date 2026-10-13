@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>EPtask Delivery Dashboard</title>
+<style>
+ body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:#f5f6f8; color:#1f2933; margin:0; padding:32px 16px; }
+ .wrap { max-width:1080px; margin:0 auto; }
+ h1 { font-size:26px; margin:0 0 4px; }
+ h2 { font-size:18px; margin:32px 0 12px; border-bottom:2px solid #d9e2ec; padding-bottom:6px; }
+ .meta { color:#52606d; font-size:13px; margin-bottom:24px; }
+ .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }
+ .card { background:#fff; border:1px solid #d9e2ec; border-radius:10px; padding:16px 18px; }
+ .card h3 { margin:0 0 6px; font-size:15px; }
+ .chip { display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; margin-bottom:8px; }
+ .ok { background:#dcfce7; color:#15803d; } .warn { background:#fef3c7; color:#b45309; } .bad { background:#fee2e2; color:#b91c1c; }
+ .card p { margin:4px 0; font-size:13px; color:#3e4c59; }
+ table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #d9e2ec; border-radius:8px; overflow:hidden; font-size:13.5px; }
+ th, td { padding:8px 12px; text-align:left; border-bottom:1px solid #e4e9f0; vertical-align:top; }
+ thead th { background:#f0f4f8; font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; color:#52606d; }
+ tbody th { font-weight:600; width:34%; }
+ td.hl { background:#f0fdf4; font-weight:600; }
+ tr.best td.hl { outline:2px solid #86efac; }
+ td.mono { font-family:ui-monospace,'Cascadia Mono',Consolas,monospace; font-size:11.5px; word-break:break-all; }
+ ul { font-size:13.5px; line-height:1.55; } li { margin-bottom:6px; }
+ footer { margin-top:36px; color:#7b8794; font-size:12px; border-top:1px solid #d9e2ec; padding-top:12px; }
+ a { color:#1d4ed8; text-decoration:none; } a:hover { text-decoration:underline; }
+</style></head><body><div class="wrap">
+<h1>EPtask — Delivery Dashboard</h1>
+<p class="meta">Generated 2026-10-09 00:41:38 · machine: Python 3.12.14 · numpy 2.1.3 · networkx 3.6.1 · matplotlib 3.9.2 · nbconvert 7.17.1 · 2 vCPU, no GPU · no internet used in any run · all numbers on this page are read programmatically from the result files</p>
+
+<h2>1 · Runs</h2>
+<div class="cards">
+ <div class="card"><span class="chip ok">COMPLETE — 8/8 CHECKS</span>
+  <h3>V7.2 real-data study — R=400 (reference-matching)</h3>
+  <p><b>The best match, delivered as primary.</b> Notebook regenerated offline with the package's own verified generator (R=400, seed 7 — the configuration its README, generator and reference all specify). Run: 2026-10-09 00:36–00:37 UTC, 49 s, exit 0.</p>
+  <p>Every step-7 field identical to the author's reference; full JSON diff = 1 timing field; figures pixel-identical.</p></div>
+ <div class="card"><span class="chip warn">7/8 CHECKS</span>
+  <h3>V7.2 real-data study — R=1000 (as shipped in the zip)</h3>
+  <p>User-directed run of the shipped notebook. 86–87 s. All N2 statistics differ from the reference — expected, since the reference is an R=400 run; CIs ≈0.63× narrower. The failing check tests +4.44 ± 0.01 pp, observed +3.69 pp.</p></div>
+ <div class="card"><span class="chip warn">COMPLETE WITH WARNINGS</span>
+  <h3>V7.1 FULL run of record — 20261008-124455-ba2667</h3>
+  <p>MEPPO A/B training, ONNX exports, demo bundle. Wall 2h51m23s, 32/32 cells, 0 errors. Warnings: both live-data endpoints unreachable → labelled SYNTHETIC/UNIFORM fallback; notebook trains ep_A=1000/ep_B=1200 (its own BUDGETS["FULL"]).</p></div>
+</div>
+
+<h2>2 · Outcome comparison — V7.2 runs vs the author's reference (both FULL, seed 7)</h2>
+<table><thead><tr><th>Metric</th><th>Reference (author, R=400)</th><th>This R=400 run — best match</th><th>R=1000 run (shipped notebook)</th></tr></thead>
+<tbody>
+<tr class='best'><th>Self-checks</th><td>8/8 passed</td><td class='hl'>8/8 passed</td><td>7/8 passed</td></tr>
+<tr class=''><th>Scenarios R</th><td>400</td><td class='hl'>400</td><td>1000</td></tr>
+<tr class=''><th>Graph nodes / edges</th><td>109,890 / 110,389</td><td class='hl'>109,890 / 110,389</td><td>109,890 / 110,389</td></tr>
+<tr class=''><th>Matched destroyed km</th><td>4.634135</td><td class='hl'>4.634135</td><td>4.634135</td></tr>
+<tr class=''><th>N1 access rows (6 rows x 15 fields)</th><td>identical</td><td class='hl'>identical</td><td>identical</td></tr>
+<tr class=''><th>Golden-hour share, 2 amb / 20 inc / cap 4 — baseline %</th><td>7.05</td><td class='hl'>7.05</td><td>6.88</td></tr>
+<tr class=''><th>Golden-hour share, 2 amb / 20 inc / cap 4 — golden-WSPT %</th><td>8.45</td><td class='hl'>8.45</td><td>8.15</td></tr>
+<tr class=''><th>Golden-hour share, 2 amb / 20 inc / cap 4 — gain (pp, 95% CI)</th><td>+1.40 ± 0.26</td><td class='hl'>+1.40 ± 0.26</td><td>+1.27 ± 0.16</td></tr>
+<tr class=''><th>Modelled survivors, half-life 30 (%)</th><td>+5.5</td><td class='hl'>+5.5</td><td>+4.6</td></tr>
+<tr class=''><th>half-life 60 (%)</th><td>+10.5</td><td class='hl'>+10.5</td><td>+9.7</td></tr>
+<tr class=''><th>half-life 120 (%)</th><td>+14.1</td><td class='hl'>+14.1</td><td>+13.6</td></tr>
+<tr class=''><th>Unlimited-capacity pilot: golden gain (pp)</th><td>+4.44 ± 1.08</td><td class='hl'>+4.44 ± 1.08</td><td>+3.69 ± 0.60</td></tr>
+<tr class=''><th>Match score: mean |Δ| over 144 N2 fields (pp)</th><td>—</td><td class='hl'>0.000000</td><td>0.588702</td></tr>
+<tr class=''><th>results_v72.json vs reference (recursive)</th><td>—</td><td class='hl'>1 field: runtime_s</td><td>707 fields</td></tr>
+<tr class=''><th>Figures vs reference</th><td>—</td><td class='hl'>pixel-identical (IDAT)</td><td>N2 bars differ (R differs)</td></tr>
+</tbody></table>
+
+<h2>3 · Downloads</h2>
+<table><thead><tr><th>File</th><th>Size</th><th>sha256</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td><a href='EPtask_V7_2_realdata_RUN_20261009-004022_R400.zip'>EPtask_V7_2_realdata_RUN_20261009-004022_R400.zip</a></td><td>10,284,208 bytes</td><td class='mono'>5e6266079457c9f889b0270344608004a9bf6b9a4dea0bfc74270856918e0bee</td><td><b>PRIMARY — best match.</b> R=400 run: 8/8 checks, outcomes identical to reference. Includes previous_executed/ with all earlier deliveries.</td></tr>
+<tr><td><a href='EPtask_V7_2_realdata_RUN_20261008-192105.zip'>EPtask_V7_2_realdata_RUN_20261008-192105.zip</a></td><td>5,136,613 bytes</td><td class='mono'>a2a8b8eac0ef832d2184ba6339eac336c6d963fef674a785a92b197b6bab6ce9</td><td>R=1000 run (user-directed): 7/8 checks; N2 differs from the R=400 reference by sampling. Includes previous_executed/ with the V7.1 run.</td></tr>
+<tr><td><a href='EPtask_V7_1_FULL_20261008-124455-ba2667.zip'>EPtask_V7_1_FULL_20261008-124455-ba2667.zip</a></td><td>4,967,473 bytes</td><td class='mono'>70d42c035bfb07287230e8ca78ae7ab881dbbae6bf6e14e185a7f62ffc6aa394</td><td>EPtask V7.1 FULL run of record 20261008-124455-ba2667 (MEPPO training, ONNX exports, demo bundle).</td></tr>
+<tr><td><a href='EPtask_V7_2_realdata_RUN_20261008-190658_FAILED_AT_STEP2_CHECKSUM.zip'>EPtask_V7_2_realdata_RUN_20261008-190658_FAILED_AT_STEP2_CHECKSUM.zip</a></td><td>4,000 bytes</td><td class='mono'>d5519e7e74cd2052ef736a226fbb94219023586ebfd5fdfa948f88494a8cc92b</td><td>First V7.2 attempt: stopped at Step 2 checksum gate (shipped notebook = R=1000 variant, manifest out of date).</td></tr>
+<tr><td><a href='EPtask_V7_2_realdata_RUN_20261009-004022_R400.zip.sha256'>EPtask_V7_2_realdata_RUN_20261009-004022_R400.zip.sha256</a></td><td>144 bytes</td><td class='mono'>73df67a86dcdd9852281ea6f5d310f26cae02be2e8d709eb13e9af55ad3bd202</td><td>sha256 sidecar for the primary zip.</td></tr>
+<tr><td><a href='RUN_REPORT_20261008-124455-ba2667.md'>RUN_REPORT_20261008-124455-ba2667.md</a></td><td>13,522 bytes</td><td class='mono'>ff83d5756eab9383b4b05ddc0096819fa68f242610e8e251f56967b38108f341</td><td>Loose copy of the V7.1 run report.</td></tr>
+</tbody></table>
+
+<h2>4 · Warnings & notes (all runs, consolidated)</h2>
+<ul>
+ <li><b>Checksum gate:</b> the shipped <code>EPtask_V7_2_realdata.ipynb</code> fails the package's own <code>SHA256SUMS</code> (21/22 files OK) — it was changed to R=1000 after the manifest was written. The package generator, README and reference all specify R=400.</li>
+ <li><b>Generator non-determinism (bytes only):</b> <code>tools/make_notebook.py</code> emits random notebook cell IDs, so no regeneration can byte-match the manifest's <code>59fe8306…</code>; three regenerations produced three hashes with identical cell sources. Cell IDs do not affect execution.</li>
+ <li><b>R=1000 run:</b> <code>FAIL N2 reproduces the tested copy (2 ambulances, 20 incidents, unlimited) (+3.69 pp)</code> and final <code>AssertionError: a self-check failed: send the whole output back</code> — the check is calibrated to the R=400 reference.</li>
+ <li><b>Figures:</b> pixel data identical to the reference; the PNG <code>tEXt</code> chunk differs only by the matplotlib version string (3.9.2 here vs 3.10.8 for the author).</li>
+ <li><b>pytest:</b> 6 passed, 14 warnings (matplotlib/pyparsing deprecations — environment-level).</li>
+ <li><b>V7.1:</b> OSM/COOLR live fetches unreachable → labelled SYNTHETIC/UNIFORM fallback; COOLR endpoint returned HTTP 404.</li>
+</ul>
+
+<footer>EPtask V7.1/V7.2 delivery set · worklog: /home/z/my-project/worklog.md · run workspaces preserved under /home/z/my-project/eptask_v72/ and /home/z/my-project/eptask_run/</footer>
+</div></body></html>

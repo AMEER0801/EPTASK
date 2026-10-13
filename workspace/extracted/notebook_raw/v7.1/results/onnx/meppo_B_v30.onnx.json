@@ -1,0 +1,17 @@
+{
+ "vehicle_count": 30,
+ "group": 1,
+ "episode": 1200,
+ "n_episodes": 1200,
+ "state_dim": 33,
+ "out_path": "/home/z/my-project/eptask_run/results/onnx/meppo_B_v30.onnx",
+ "size_bytes": 63225,
+ "exporter": "torchscript",
+ "cfg_kw": {
+  "DISASTER_MODE": true,
+  "STATE_MODE": 33,
+  "RANDOM_DISASTERS": true,
+  "DISASTER_REWARD": true
+ },
+ "created": "2026-10-08 12:21:43"
+}
