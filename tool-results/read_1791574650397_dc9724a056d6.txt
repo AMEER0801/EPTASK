@@ -1,0 +1,783 @@
+     1→     1→"""
+     2→     2→corridor.py -- road-scale co-simulation for N1 (V7.1).
+     3→     3→
+     4→     4→WHY A SECOND SPATIAL SCALE (ADR-001)
+     5→     5→The VEC cell replicated from Table III is a 558 m road with 8 RSUs. An
+     6→     6→ambulance trip in Nuwakot/Rasuwa is tens of kilometres. So N1 is measured at
+     7→     7→two scales:
+     8→     8→  micro -- the VEC cell (novelties.latency_samples): how long an emergency
+     9→     9→           vehicle's request takes, and whether it meets its deadline, while a
+    10→    10→           block of RSUs is down, with the floor on or off.
+    11→    11→  macro -- this module: a road graph where a hazard blocks the valley road,
+    12→    12→           the warning spreads by vehicle-to-vehicle relay, store-carry-forward
+    13→    13→           and surviving roadside units, and an ambulance reroutes when it
+    14→    14→           learns. Route computation and the RSU's hazard verification take the
+    15→    15→           MICRO latencies, retried after a deadline miss.
+    16→    16→
+    17→    17→THE REAL GEOMETRY BEHIND THE DEFAULT
+    18→    18→From Betrawati to Syaphrubesi there are two roads: the Trishuli valley road
+    19→    19→(NH42, via Mailung, about 29-31 km) and the hill road (NH18, via Kalikasthan
+    20→    20→and Dhunche, about 54 km). The Aug-2026 outburst flood damaged NH42 at many
+    21→    21→points. An ambulance from Bidur that learns of a valley blockage BEFORE the
+    22→    22→Betrawati junction takes the hill road; one that learns after must drive back.
+    23→    23→That decision point turns information timing into kilometres.
+    24→    24→
+    25→    25→MODELLED: a road graph (synthetic two-route schematic with published route
+    26→    26→lengths, or the real OpenStreetMap graph), Poisson traffic from both ends, one
+    27→    27→blocked edge, V2V relay within a fixed range (multi-hop within a tick),
+    28→    28→store-carry-forward by vehicles that turned back, RSUs every few km with a
+    29→    29→destruction footprint around the hazard, backhaul broadcast once an RSU has
+    30→    30→verified the report, micro-sampled service latency with retry on miss.
+    31→    31→NOT MODELLED: radio propagation and terrain shadowing (fixed range),
+    32→    32→congestion (mountain traffic is sparse; queues only at the blockage), road
+    33→    33→yielding to the ambulance, driver behaviour beyond "turn back / reroute when
+    34→    34→informed". Speeds are ASSUMPTIONS (ROUTE_KPH, SPEED_KPH).
+    35→    35→"""
+    36→    36→import math
+    37→    37→import os
+    38→    38→
+    39→    39→import numpy as np
+    40→    40→import networkx as nx
+    41→    41→import matplotlib
+    42→    42→matplotlib.use("Agg")
+    43→    43→import matplotlib.pyplot as plt
+    44→    44→from matplotlib.collections import LineCollection
+    45→    45→
+    46→    46→from runlog import mean_ci, fmt_ci
+    47→    47→
+    48→    48→R_EARTH = 6371000.0
+    49→    49→SPEED_KPH = dict(trunk=30, trunk_link=25, primary=30, primary_link=25, secondary=25,
+    50→    50→                 secondary_link=20, tertiary=20, tertiary_link=20, unclassified=18,
+    51→    51→                 residential=15, road=15, track=10)                 # ASSUMPTION (mountain roads)
+    52→    52→MAJOR = ("trunk", "primary", "secondary", "tertiary")
+    53→    53→# published road distances: Betrawati-Mailung-Syaphrubesi ~31 km with
+    54→    54→# Mailung-Syaphrubesi 17 km; Betrawati-Kalikasthan-Dhunche-Syaphrubesi ~54 km.
+    55→    55→# Bidur-Betrawati (access) is an ASSUMPTION.
+    56→    56→ROUTE_KM = dict(access=12.0, valley_a=14.0, valley_b=17.0, hill=54.0)
+    57→    57→ROUTE_KPH = dict(access=30.0, valley=25.0, hill=20.0)              # ASSUMPTION
+    58→    58→INFO_MODES = ("NONE", "V2V", "RSU", "V2V+RSU")
+    59→    59→DEFAULTS = dict(dt=5.0, warmup_s=1800.0, horizon_s=6 * 3600.0, traffic_vph=30.0,
+    60→    60→                v2v_range_m=300.0, rsu_spacing_m=3000.0, rsu_range_m=800.0,
+    61→    61→                footprint_m=2000.0, dispatch_s=600.0, speed_jitter=0.15,
+    62→    62→                coverage_every_s=60.0, max_retries=8, hazard_margin_m=2000.0,
+    63→    63→                coolr_radius_m=1500.0)
+    64→    64→ROUTE_COLORS = dict(access="#7f8c8d", valley="#1f4e79", hill="#2e7d32")
+    65→    65→
+    66→    66→
+    67→    67→# ----------------------------------------------------------------------
+    68→    68→# geometry helpers
+    69→    69→# ----------------------------------------------------------------------
+    70→    70→def proj(lat, lon, lat0, lon0):
+    71→    71→    return (R_EARTH * math.radians(lon - lon0) * math.cos(math.radians(lat0)),
+    72→    72→            R_EARTH * math.radians(lat - lat0))
+    73→    73→
+    74→    74→
+    75→    75→def haversine(la1, lo1, la2, lo2):
+    76→    76→    p1, p2 = math.radians(la1), math.radians(la2)
+    77→    77→    a = (math.sin((p2 - p1) / 2) ** 2
+    78→    78→         + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lo2 - lo1) / 2) ** 2)
+    79→    79→    return 2 * R_EARTH * math.asin(min(1.0, math.sqrt(a)))
+    80→    80→
+    81→    81→
+    82→    82→def _arc(pts):
+    83→    83→    seg = np.diff(pts, axis=0)
+    84→    84→    return np.concatenate([[0.0], np.cumsum(np.hypot(seg[:, 0], seg[:, 1]))])
+    85→    85→
+    86→    86→
+    87→    87→def _bezier(p0, c, p2, n=400):
+    88→    88→    t = np.linspace(0, 1, n)[:, None]
+    89→    89→    return (1 - t) ** 2 * p0 + 2 * (1 - t) * t * c + t ** 2 * p2
+    90→    90→
+    91→    91→
+    92→    92→def _curve(p0, p2, length_m, side):
+    93→    93→    """Quadratic Bezier p0 -> p2 bulging to `side` with arc length length_m
+    94→    94→    (bisection on the bulge). Straight if length_m <= the chord."""
+    95→    95→    p0, p2 = np.asarray(p0, float), np.asarray(p2, float)
+    96→    96→    d = p2 - p0
+    97→    97→    chord = float(np.hypot(*d))
+    98→    98→    if length_m <= chord * 1.001 or chord == 0:
+    99→    99→        return np.linspace(p0, p2, 50)
+   100→   100→    nrm = np.array([-d[1], d[0]]) / chord * side
+   101→   101→    mid = (p0 + p2) / 2
+   102→   102→    lo, hi = 0.0, length_m
+   103→   103→    for _ in range(60):
+   104→   104→        h = (lo + hi) / 2
+   105→   105→        if _arc(_bezier(p0, mid + nrm * h, p2))[-1] < length_m:
+   106→   106→            lo = h
+   107→   107→        else:
+   108→   108→            hi = h
+   109→   109→    return _bezier(p0, mid + nrm * (lo + hi) / 2, p2)
+   110→   110→
+   111→   111→
+   112→   112→def _resample(pts, n):
+   113→   113→    s = _arc(pts)
+   114→   114→    tgt = np.linspace(0, s[-1], n + 1)
+   115→   115→    return np.stack([np.interp(tgt, s, pts[:, 0]), np.interp(tgt, s, pts[:, 1])], axis=1)
+   116→   116→
+   117→   117→
+   118→   118→def _ll(places, name):
+   119→   119→    v = places[name]
+   120→   120→    return (v["lat"], v["lon"]) if isinstance(v, dict) else (v[0], v[1])
+   121→   121→
+   122→   122→
+   123→   123→# ----------------------------------------------------------------------
+   124→   124→# graphs
+   125→   125→# ----------------------------------------------------------------------
+   126→   126→def build_synthetic(places, seg_m=250.0):
+   127→   127→    """Two-route schematic: Bidur -> Betrawati -> {valley via Mailung | hill via
+   128→   128→    Dhunche} -> Syaphrubesi. Route LENGTHS are the published road distances;
+   129→   129→    the GEOMETRY is schematic (curves through the place coordinates)."""
+   130→   130→    lat0, lon0 = _ll(places, "Betrawati")
+   131→   131→    xy = {k: np.array(proj(*_ll(places, k), lat0, lon0))
+   132→   132→          for k in ("Bidur", "Betrawati", "Mailung", "Dhunche", "Syaphrubesi")}
+   133→   133→    G = nx.Graph()
+   134→   134→    named, counter = {}, [0]
+   135→   135→
+   136→   136→    def node(p, name=None):
+   137→   137→        if name is not None and name in named:
+   138→   138→            return named[name]
+   139→   139→        i = counter[0]
+   140→   140→        counter[0] += 1
+   141→   141→        G.add_node(i, x=float(p[0]), y=float(p[1]), name=name or "")
+   142→   142→        if name is not None:
+   143→   143→            named[name] = i
+   144→   144→        return i
+   145→   145→
+   146→   146→    def route(a, b, km, kph, side, tag):
+   147→   147→        L = km * 1000.0
+   148→   148→        n = max(2, int(round(L / seg_m)))
+   149→   149→        P = _resample(_curve(xy[a], xy[b], L, side), n)
+   150→   150→        ids = [node(xy[a], a)] + [node(P[j]) for j in range(1, n)] + [node(xy[b], b)]
+   151→   151→        seg, v = L / n, kph / 3.6
+   152→   152→        for u, w in zip(ids[:-1], ids[1:]):
+   153→   153→            G.add_edge(u, w, length=seg, speed=v, tt=seg / v, route=tag)
+   154→   154→
+   155→   155→    route("Bidur", "Betrawati", ROUTE_KM["access"], ROUTE_KPH["access"], +1, "access")
+   156→   156→    route("Betrawati", "Mailung", ROUTE_KM["valley_a"], ROUTE_KPH["valley"], -1, "valley")
+   157→   157→    route("Mailung", "Syaphrubesi", ROUTE_KM["valley_b"], ROUTE_KPH["valley"], -1, "valley")
+   158→   158→    d1 = float(np.hypot(*(xy["Dhunche"] - xy["Betrawati"])))
+   159→   159→    d2 = float(np.hypot(*(xy["Syaphrubesi"] - xy["Dhunche"])))
+   160→   160→    f = d1 / (d1 + d2)              # split of the 54 km at Dhunche: ASSUMPTION
+   161→   161→    route("Betrawati", "Dhunche", ROUTE_KM["hill"] * f, ROUTE_KPH["hill"], +1, "hill")
+   162→   162→    route("Dhunche", "Syaphrubesi", ROUTE_KM["hill"] * (1 - f), ROUTE_KPH["hill"], +1, "hill")
+   163→   163→    G.graph.update(source="synthetic (schematic geometry, published route lengths)",
+   164→   164→                   origin=named["Bidur"], junction=named["Betrawati"],
+   165→   165→                   dest=named["Syaphrubesi"], named=named, lat0=lat0, lon0=lon0)
+   166→   166→    return G
+   167→   167→
+   168→   168→
+   169→   169→def graph_from_osm(osm_js, places):
+   170→   170→    """Real OpenStreetMap drivable network -> undirected graph in local metres
+   171→   171→    (largest connected component). Places are snapped to the nearest node on
+   172→   172→    a major road (trunk/primary/secondary/tertiary)."""
+   173→   173→    nodes, ways = {}, []
+   174→   174→    for el in osm_js.get("elements", []):
+   175→   175→        if el.get("type") == "node":
+   176→   176→            nodes[el["id"]] = (el["lat"], el["lon"])
+   177→   177→        elif el.get("type") == "way":
+   178→   178→            ways.append(el)
+   179→   179→    G = nx.Graph()
+   180→   180→    for w in ways:
+   181→   181→        tags = w.get("tags") or {}
+   182→   182→        hw = tags.get("highway")
+   183→   183→        if hw not in SPEED_KPH:
+   184→   184→            continue
+   185→   185→        v = SPEED_KPH[hw] / 3.6
+   186→   186→        nd = w.get("nodes", [])
+   187→   187→        for a, b in zip(nd[:-1], nd[1:]):
+   188→   188→            if a == b or a not in nodes or b not in nodes:
+   189→   189→                continue
+   190→   190→            L = haversine(*nodes[a], *nodes[b])
+   191→   191→            if L < 0.5:
+   192→   192→                continue
+   193→   193→            if G.has_edge(a, b) and G[a][b]["tt"] <= L / v:
+   194→   194→                continue
+   195→   195→            G.add_edge(a, b, length=L, speed=v, tt=L / v, route=hw,
+   196→   196→                       name=tags.get("name", ""), ref=tags.get("ref", ""))
+   197→   197→    if G.number_of_edges() == 0:
+   198→   198→        raise ValueError("no drivable ways in the OSM extract")
+   199→   199→    G = G.subgraph(max(nx.connected_components(G), key=len)).copy()
+   200→   200→    lat0 = float(np.mean([nodes[n][0] for n in G]))
+   201→   201→    lon0 = float(np.mean([nodes[n][1] for n in G]))
+   202→   202→    for n in G:
+   203→   203→        la, lo = nodes[n]
+   204→   204→        x, y = proj(la, lo, lat0, lon0)
+   205→   205→        G.nodes[n].update(x=x, y=y, lat=la, lon=lo, name="")
+   206→   206→    major = sorted({n for u, v, dd in G.edges(data=True) if dd["route"] in MAJOR for n in (u, v)})
+   207→   207→    pool = np.array(major if major else list(G.nodes))
+   208→   208→    pxy = np.array([(G.nodes[n]["x"], G.nodes[n]["y"]) for n in pool])
+   209→   209→    named, snap = {}, {}
+   210→   210→    for name in ("Bidur", "Betrawati", "Mailung", "Dhunche", "Syaphrubesi"):
+   211→   211→        px, py = proj(*_ll(places, name), lat0, lon0)
+   212→   212→        d2 = (pxy[:, 0] - px) ** 2 + (pxy[:, 1] - py) ** 2
+   213→   213→        j = int(np.argmin(d2))
+   214→   214→        named[name], snap[name] = int(pool[j]), float(math.sqrt(d2[j]))
+   215→   215→        G.nodes[int(pool[j])]["name"] = name
+   216→   216→    G.graph.update(source="OpenStreetMap", origin=named["Bidur"], junction=named["Betrawati"],
+   217→   217→                   dest=named["Syaphrubesi"], named=named, lat0=lat0, lon0=lon0, snap_m=snap)
+   218→   218→    return G
+   219→   219→
+   220→   220→
+   221→   221→def tree(G, target, blocked=None):
+   222→   222→    """Shortest travel-time tree TOWARD target (predecessors, distances).
+   223→   223→    `blocked` = an edge (a, b) that is impassable."""
+   224→   224→    if blocked is None:
+   225→   225→        w = "tt"
+   226→   226→    else:
+   227→   227→        a, b = blocked
+   228→   228→
+   229→   229→        def w(u, v, d):
+   230→   230→            return None if (u == a and v == b) or (u == b and v == a) else d["tt"]
+   231→   231→    return nx.dijkstra_predecessor_and_distance(G, target, weight=w)
+   232→   232→
+   233→   233→
+   234→   234→def path_from(pred, n, target):
+   235→   235→    if n == target:
+   236→   236→        return [n]
+   237→   237→    if n not in pred or not pred[n]:
+   238→   238→        return None
+   239→   239→    path, seen = [n], {n}
+   240→   240→    while path[-1] != target:
+   241→   241→        nxt = pred[path[-1]][0]
+   242→   242→        if nxt in seen:
+   243→   243→            return None
+   244→   244→        path.append(nxt)
+   245→   245→        seen.add(nxt)
+   246→   246→    return path
+   247→   247→
+   248→   248→
+   249→   249→def analyse(G, margin_m=2000.0, n_test=12):
+   250→   250→    """Open shortest path, hazard candidates on it (beyond the junction, away
+   251→   251→    from both ends), whether a detour exists, and the DATA-DRIVEN junction:
+   252→   252→    the last node the open path and the detour share, from the origin side."""
+   253→   253→    o, d = G.graph["origin"], G.graph["dest"]
+   254→   254→    pred_d, dist_d = tree(G, d)
+   255→   255→    if o not in dist_d:
+   256→   256→        return dict(ok=False, reason="origin and destination are not connected")
+   257→   257→    p = path_from(pred_d, o, d)
+   258→   258→    cum = np.concatenate([[0.0], np.cumsum([G[u][v]["length"] for u, v in zip(p[:-1], p[1:])])])
+   259→   259→    j = G.graph.get("junction")
+   260→   260→    ji = p.index(j) if j in p else 0
+   261→   261→    cands = [(p[i], p[i + 1]) for i in range(ji, len(p) - 1)
+   262→   262→             if cum[i] - cum[ji] >= margin_m and cum[-1] - cum[i + 1] >= margin_m]
+   263→   263→    if not cands:
+   264→   264→        a, b = len(p) // 3, 2 * len(p) // 3
+   265→   265→        cands = [(p[i], p[i + 1]) for i in range(a, max(b, a + 1))]
+   266→   266→    idx = np.unique(np.linspace(0, len(cands) - 1, min(n_test, len(cands))).astype(int))
+   267→   267→    ok_e, det = [], []
+   268→   268→    for i in idx:
+   269→   269→        _, db = tree(G, d, blocked=cands[i])
+   270→   270→        if o in db:
+   271→   271→            ok_e.append(cands[i]); det.append(db[o])
+   272→   272→    info = dict(ok=bool(ok_e), open_km=float(cum[-1] / 1000), open_min=float(dist_d[o] / 60),
+   273→   273→                n_nodes=G.number_of_nodes(), n_edges=G.number_of_edges(),
+   274→   274→                n_candidates=len(cands), frac_with_detour=len(ok_e) / max(len(idx), 1),
+   275→   275→                reason="" if ok_e else "no detour exists around the hazard candidates")
+   276→   276→    if ok_e:
+   277→   277→        e = ok_e[len(ok_e) // 2]
+   278→   278→        pb, _ = tree(G, d, blocked=e)
+   279→   279→        q = path_from(pb, o, d)
+   280→   280→        k = 0
+   281→   281→        while k < min(len(p), len(q)) and p[k] == q[k]:
+   282→   282→            k += 1
+   283→   283→        jn = p[max(k - 1, 0)]
+   284→   284→        info.update(detour_min=float(np.median(det)) / 60, junction_node=int(jn),
+   285→   285→                    junction_name=G.nodes[jn].get("name", ""),
+   286→   286→                    junction_km=float(cum[p.index(jn)] / 1000))
+   287→   287→        G.graph["junction_node"] = jn
+   288→   288→    G.graph["open_path"], G.graph["cands"], G.graph["analysis"] = p, cands, info
+   289→   289→    return info
+   290→   290→
+   291→   291→
+   292→   292→def build_corridor(data, prefer_osm=True):
+   293→   293→    """Real OSM graph when it is usable (connected, and a detour exists);
+   294→   294→    otherwise the synthetic schematic. The reason is always returned."""
+   295→   295→    reasons = []
+   296→   296→    if prefer_osm and data.get("osm"):
+   297→   297→        try:
+   298→   298→            G = graph_from_osm(data["osm"], data["places"])
+   299→   299→            info = analyse(G)
+   300→   300→            if info["ok"]:
+   301→   301→                info.update(chosen="osm", reason="OSM graph is connected and has a detour")
+   302→   302→                return G, info
+   303→   303→            reasons.append("OSM graph unusable: " + info["reason"])
+   304→   304→        except Exception as exc:
+   305→   305→            reasons.append(f"OSM graph build failed: {exc!r}"[:300])
+   306→   306→    G = build_synthetic(data["places"])
+   307→   307→    info = analyse(G)
+   308→   308→    info.update(chosen="synthetic",
+   309→   309→                reason="; ".join(reasons) or "no OSM data (offline, blocked, or fetch disabled)")
+   310→   310→    return G, info
+   311→   311→
+   312→   312→
+   313→   313→def coolr_xy(G, points):
+   314→   314→    if not points:
+   315→   315→        return np.zeros((0, 2))
+   316→   316→    lat0, lon0 = G.graph["lat0"], G.graph["lon0"]
+   317→   317→    return np.array([proj(p["lat"], p["lon"], lat0, lon0) for p in points])
+   318→   318→
+   319→   319→
+   320→   320→def _xy(G):
+   321→   321→    if "_xy" not in G.graph:
+   322→   322→        G.graph["_xy"] = {n: (G.nodes[n]["x"], G.nodes[n]["y"]) for n in G.nodes}
+   323→   323→    return G.graph["_xy"]
+   324→   324→
+   325→   325→
+   326→   326→def build_trees(G, hazard):
+   327→   327→    o, d = G.graph["origin"], G.graph["dest"]
+   328→   328→    return {(t, b): tree(G, t, hazard if b else None) for t in (o, d) for b in (False, True)}
+   329→   329→
+   330→   330→
+   331→   331→def place_rsus(G, hazard, params, trees):
+   332→   332→    """RSUs every rsu_spacing_m along the open path and the detour; those within
+   333→   333→    footprint_m of the hazard are destroyed."""
+   334→   334→    o, d = G.graph["origin"], G.graph["dest"]
+   335→   335→    xy = _xy(G)
+   336→   336→    paths = [G.graph["open_path"]]
+   337→   337→    pb, db = trees[(d, True)]
+   338→   338→    if o in db:
+   339→   339→        paths.append(path_from(pb, o, d))
+   340→   340→    sp = params["rsu_spacing_m"]
+   341→   341→    pts = []
+   342→   342→    for path in paths:
+   343→   343→        acc, nxt = 0.0, sp / 2
+   344→   344→        for u, v in zip(path[:-1], path[1:]):
+   345→   345→            L = G[u][v]["length"]
+   346→   346→            (xu, yu), (xv, yv) = xy[u], xy[v]
+   347→   347→            while acc + L >= nxt:
+   348→   348→                f = (nxt - acc) / L
+   349→   349→                pts.append((xu + f * (xv - xu), yu + f * (yv - yu)))
+   350→   350→                nxt += sp
+   351→   351→            acc += L
+   352→   352→    kept = []
+   353→   353→    for q in pts:
+   354→   354→        if all((q[0] - k[0]) ** 2 + (q[1] - k[1]) ** 2 > (sp / 3) ** 2 for k in kept):
+   355→   355→            kept.append(q)
+   356→   356→    P = np.array(kept) if kept else np.zeros((0, 2))
+   357→   357→    (ax, ay), (bx, by) = xy[hazard[0]], xy[hazard[1]]
+   358→   358→    hx, hy = (ax + bx) / 2, (ay + by) / 2
+   359→   359→    alive = ((P[:, 0] - hx) ** 2 + (P[:, 1] - hy) ** 2) > params["footprint_m"] ** 2 \
+   360→   360→        if len(P) else np.zeros(0, bool)
+   361→   361→    return P, alive
+   362→   362→
+   363→   363→
+   364→   364→def service_delay(rng, lat, max_retries=8):
+   365→   365→    """Delay of one emergency request: draw (T, deadline) from the micro
+   366→   366→    samples; a miss is treated as lost after the deadline and retried."""
+   367→   367→    if lat is None or len(lat.get("T", [])) == 0:
+   368→   368→        return 0.0
+   369→   369→    T, D = np.asarray(lat["T"]), np.asarray(lat["D"])
+   370→   370→    total, j = 0.0, 0
+   371→   371→    for _ in range(max_retries):
+   372→   372→        j = int(rng.integers(len(T)))
+   373→   373→        if T[j] <= D[j]:
+   374→   374→            return total + float(T[j])
+   375→   375→        total += float(D[j])
+   376→   376→    return total + float(T[j])
+   377→   377→
+   378→   378→
+   379→   379→# ----------------------------------------------------------------------
+   380→   380→# one trial
+   381→   381→# ----------------------------------------------------------------------
+   382→   382→class _Veh:
+   383→   383→    __slots__ = ("path", "k", "off", "sf", "inf", "tinf", "amb", "target", "stuck", "done",
+   384→   384→                 "t_done", "trapped", "reroute_at", "wait", "missed", "passed", "seen")
+   385→   385→
+   386→   386→    def __init__(self, path, target, sf, amb=False):
+   387→   387→        self.path, self.k, self.off, self.sf = path, 0, 0.0, sf
+   388→   388→        self.inf, self.tinf, self.amb, self.target = False, None, amb, target
+   389→   389→        self.stuck = self.done = self.trapped = self.missed = self.passed = self.seen = False
+   390→   390→        self.t_done, self.reroute_at, self.wait = None, None, 0.0
+   391→   391→
+   392→   392→
+   393→   393→def run_trial(G, info_mode, latency=None, seed=0, hazard=None, params=None, trees=None,
+   394→   394→              rsu=None):
+   395→   395→    assert info_mode in INFO_MODES, info_mode
+   396→   396→    P = dict(DEFAULTS)
+   397→   397→    P.update(params or {})
+   398→   398→    o, d = G.graph["origin"], G.graph["dest"]
+   399→   399→    jn = G.graph.get("junction_node", G.graph["junction"])
+   400→   400→    trees = trees or build_trees(G, hazard)
+   401→   401→    rsu_xy, rsu_alive = rsu if rsu is not None else place_rsus(G, hazard, P, trees)
+   402→   402→    alive_xy = rsu_xy[rsu_alive] if len(rsu_xy) else np.zeros((0, 2))
+   403→   403→    rng_tr = np.random.default_rng([int(seed), 1])
+   404→   404→    rng_lat = np.random.default_rng([int(seed), 2])
+   405→   405→    xy = _xy(G)
+   406→   406→    ha, hb = hazard
+   407→   407→    hx, hy = (xy[ha][0] + xy[hb][0]) / 2, (xy[ha][1] + xy[hb][1]) / 2
+   408→   408→    use_v2v, use_rsu = "V2V" in info_mode, "RSU" in info_mode
+   409→   409→    dt, R2, RR2 = P["dt"], P["v2v_range_m"] ** 2, P["rsu_range_m"] ** 2
+   410→   410→    rate = P["traffic_vph"] / 3600.0
+   411→   411→    state = dict(hz=False, rsu_t=None)
+   412→   412→    vehs, amb = [], None
+   413→   413→    cov_t, cov_f, next_cov = [], [], 0.0
+   414→   414→
+   415→   415→    def is_h(u, w):
+   416→   416→        return (u == ha and w == hb) or (u == hb and w == ha)
+   417→   417→
+   418→   418→    def on_hazard_path(v):
+   419→   419→        rem = v.path[v.k:]
+   420→   420→        return any(is_h(a, b) for a, b in zip(rem[:-1], rem[1:]))
+   421→   421→
+   422→   422→    def svc():
+   423→   423→        return service_delay(rng_lat, latency, P["max_retries"])
+   424→   424→
+   425→   425→    def replan(v):
+   426→   426→        if v.k >= len(v.path) - 1:
+   427→   427→            return
+   428→   428→        pred, dist = trees[(v.target, True)]
+   429→   429→        u, w = v.path[v.k], v.path[v.k + 1]
+   430→   430→        e = G[u][w]
+   431→   431→        L, spd = e["length"], e["speed"] * v.sf
+   432→   432→        cA = math.inf if (is_h(u, w) or w not in dist) else (L - v.off) / spd + dist[w]
+   433→   433→        cB = math.inf if u not in dist else v.off / spd + dist[u]
+   434→   434→        if math.isinf(cA) and math.isinf(cB):
+   435→   435→            v.stuck = True
+   436→   436→            return
+   437→   437→        if cA <= cB:
+   438→   438→            v.path, v.k = [u, w] + path_from(pred, w, v.target)[1:], 0
+   439→   439→        else:
+   440→   440→            v.path, v.k, v.off = [w] + path_from(pred, u, v.target), 0, L - v.off
+   441→   441→
+   442→   442→    def learn(v, now):                       # told by V2V or an RSU
+   443→   443→        if v.inf:
+   444→   444→            return
+   445→   445→        v.inf, v.tinf = True, now
+   446→   446→        if not on_hazard_path(v):
+   447→   447→            return
+   448→   448→        if v.amb:
+   449→   449→            if v.reroute_at is None:         # route computation = an EMERGENCY request
+   450→   450→                delay = svc()
+   451→   451→                v.wait += delay
+   452→   452→                v.reroute_at = now + delay
+   453→   453→        else:
+   454→   454→            replan(v)
+   455→   455→
+   456→   456→    def discover(v, now):                    # saw the blockage itself
+   457→   457→        if not v.inf:
+   458→   458→            v.inf, v.tinf = True, now
+   459→   459→        v.seen, v.reroute_at = True, None
+   460→   460→        if not v.amb:
+   461→   461→            v.trapped = True
+   462→   462→        replan(v)
+   463→   463→
+   464→   464→    def advance(v, now):
+   465→   465→        tl = dt
+   466→   466→        while tl > 1e-9:
+   467→   467→            if v.k >= len(v.path) - 1:
+   468→   468→                v.done, v.t_done = True, now + (dt - tl)
+   469→   469→                return
+   470→   470→            u, w = v.path[v.k], v.path[v.k + 1]
+   471→   471→            if state["hz"] and v.off <= 1e-9 and is_h(u, w):
+   472→   472→                discover(v, now)
+   473→   473→                if v.stuck:
+   474→   474→                    return
+   475→   475→                continue
+   476→   476→            e = G[u][w]
+   477→   477→            spd = e["speed"] * v.sf
+   478→   478→            need = (e["length"] - v.off) / spd
+   479→   479→            if need <= tl:
+   480→   480→                tl -= need
+   481→   481→                v.k += 1
+   482→   482→                v.off = 0.0
+   483→   483→                if v.amb and not v.passed and v.path[v.k] == jn:
+   484→   484→                    v.passed = True
+   485→   485→                    v.missed = state["hz"] and on_hazard_path(v)
+   486→   486→            else:
+   487→   487→                v.off += spd * tl
+   488→   488→                tl = 0.0
+   489→   489→
+   490→   490→    def pos(v):
+   491→   491→        if v.k >= len(v.path) - 1:
+   492→   492→            return xy[v.path[-1]]
+   493→   493→        u, w = v.path[v.k], v.path[v.k + 1]
+   494→   494→        f = v.off / G[u][w]["length"]
+   495→   495→        return (xy[u][0] + f * (xy[w][0] - xy[u][0]), xy[u][1] + f * (xy[w][1] - xy[u][1]))
+   496→   496→
+   497→   497→    open_od = path_from(trees[(d, False)][0], o, d)
+   498→   498→    open_do = path_from(trees[(o, False)][0], d, o)
+   499→   499→    t = -P["warmup_s"]
+   500→   500→    while t < P["horizon_s"]:
+   501→   501→        for src_path, tgt in ((open_od, d), (open_do, o)):
+   502→   502→            for _ in range(int(rng_tr.poisson(rate * dt))):
+   503→   503→                vehs.append(_Veh(list(src_path), tgt,
+   504→   504→                                 1.0 + P["speed_jitter"] * rng_tr.uniform(-1, 1)))
+   505→   505→        if not state["hz"] and t >= 0:
+   506→   506→            state["hz"] = True
+   507→   507→            for v in vehs:                   # caught ON the hazard edge: stuck witnesses
+   508→   508→                if not v.done and v.k < len(v.path) - 1 and v.off > 1e-9 \
+   509→   509→                        and is_h(v.path[v.k], v.path[v.k + 1]):
+   510→   510→                    v.stuck = v.inf = v.trapped = True
+   511→   511→                    v.tinf = 0.0
+   512→   512→            if use_rsu and len(alive_xy) and \
+   513→   513→                    (((alive_xy[:, 0] - hx) ** 2 + (alive_xy[:, 1] - hy) ** 2) <= RR2).any():
+   514→   514→                state["rsu_t"] = t + svc()   # a surviving RSU sees the hazard itself
+   515→   515→        if amb is None and t >= P["dispatch_s"]:
+   516→   516→            amb = _Veh(list(open_od), d, 1.0, amb=True)
+   517→   517→            vehs.append(amb)
+   518→   518→        for v in vehs:
+   519→   519→            if not (v.done or v.stuck):
+   520→   520→                advance(v, t)
+   521→   521→        if amb is not None and amb.reroute_at is not None and t >= amb.reroute_at \
+   522→   522→                and not amb.done and not amb.stuck:
+   523→   523→            amb.reroute_at = None
+   524→   524→            if on_hazard_path(amb):
+   525→   525→                replan(amb)
+   526→   526→        if state["hz"]:
+   527→   527→            act = [v for v in vehs if not v.done]
+   528→   528→            if act:
+   529→   529→                X = np.array([pos(v) for v in act])
+   530→   530→                infm = np.array([v.inf for v in act])
+   531→   531→                if use_v2v and infm.any() and (~infm).any():
+   532→   532→                    while True:                       # multi-hop within one tick
+   533→   533→                        U = np.flatnonzero(~infm)
+   534→   534→                        if len(U) == 0:
+   535→   535→                            break
+   536→   536→                        I = X[infm]
+   537→   537→                        d2 = ((X[U][:, None, :] - I[None, :, :]) ** 2).sum(-1)
+   538→   538→                        hit = U[(d2 <= R2).any(1)]
+   539→   539→                        if len(hit) == 0:
+   540→   540→                            break
+   541→   541→                        infm[hit] = True
+   542→   542→                        for h in hit:
+   543→   543→                            learn(act[h], t)
+   544→   544→                if use_rsu and len(alive_xy):
+   545→   545→                    if state["rsu_t"] is None:
+   546→   546→                        I = X[infm]
+   547→   547→                        if len(I) and (((I[:, None, :] - alive_xy[None, :, :]) ** 2).sum(-1) <= RR2).any():
+   548→   548→                            state["rsu_t"] = t + svc()        # RSU verifies the report
+   549→   549→                    elif t >= state["rsu_t"]:
+   550→   550→                        cov = (((X[:, None, :] - alive_xy[None, :, :]) ** 2).sum(-1) <= RR2).any(1)
+   551→   551→                        for h in np.flatnonzero(cov & ~infm):
+   552→   552→                            learn(act[h], t)
+   553→   553→            if t >= next_cov:
+   554→   554→                civ = [v for v in act if not v.amb]
+   555→   555→                cov_t.append(t)
+   556→   556→                cov_f.append(float(np.mean([v.inf for v in civ])) if civ else float("nan"))
+   557→   557→                next_cov += P["coverage_every_s"]
+   558→   558→        if amb is not None and (amb.done or amb.stuck):
+   559→   559→            break
+   560→   560→        t += dt
+   561→   561→
+   562→   562→    disp = P["dispatch_s"]
+   563→   563→    oracle = trees[(d, True)][1].get(o, math.inf)
+   564→   564→    arr = (amb.t_done - disp) if (amb is not None and amb.done) else math.nan
+   565→   565→    return dict(info_mode=info_mode, arrival_min=arr / 60, oracle_min=oracle / 60,
+   566→   566→                open_min=trees[(d, False)][1][o] / 60, extra_min=(arr - oracle) / 60,
+   567→   567→                informed_min=((amb.tinf - disp) / 60) if (amb and amb.tinf is not None) else math.nan,
+   568→   568→                missed_junction=bool(amb.missed) if amb else False,
+   569→   569→                saw_block=bool(amb.seen) if amb else False,
+   570→   570→                service_wait_s=float(amb.wait) if amb else 0.0,
+   571→   571→                unreachable=bool(amb.stuck) if amb else True,
+   572→   572→                trapped=int(sum(v.trapped for v in vehs if not v.amb)),
+   573→   573→                civilians=int(sum(1 for v in vehs if not v.amb)),
+   574→   574→                rsu_alive=float(rsu_alive.mean()) if len(rsu_alive) else math.nan,
+   575→   575→                rsu_verified_s=state["rsu_t"], cov_t=cov_t, cov_f=cov_f, hazard=[ha, hb])
+   576→   576→
+   577→   577→
+   578→   578→# ----------------------------------------------------------------------
+   579→   579→# experiment = trials x info modes x scheduling configurations (paired)
+   580→   580→# ----------------------------------------------------------------------
+   581→   581→def run_experiment(G, latencies, info_modes=INFO_MODES, trials=10, params=None, seed0=0,
+   582→   582→                   coolr=None, verbose=True):
+   583→   583→    """latencies: {scheduling label: micro samples}. Within a trial, every
+   584→   584→    (info mode, scheduling) arm shares the hazard and the traffic stream --
+   585→   585→    differences between arms are paired."""
+   586→   586→    P = dict(DEFAULTS)
+   587→   587→    P.update(params or {})
+   588→   588→    info = G.graph.get("analysis") or analyse(G, P["hazard_margin_m"])
+   589→   589→    o, d = G.graph["origin"], G.graph["dest"]
+   590→   590→    xy = _xy(G)
+   591→   591→    cands = G.graph["cands"]
+   592→   592→    mids = np.array([((xy[a][0] + xy[b][0]) / 2, (xy[a][1] + xy[b][1]) / 2) for a, b in cands])
+   593→   593→    w = np.ones(len(cands))
+   594→   594→    if coolr is not None and len(coolr):
+   595→   595→        d2 = ((mids[:, None, :] - coolr[None, :, :]) ** 2).sum(-1)
+   596→   596→        w += (d2 <= P["coolr_radius_m"] ** 2).sum(1)
+   597→   597→    w /= w.sum()
+   598→   598→    results = {f"{m} | {s}": [] for m in info_modes for s in latencies}
+   599→   599→    hazards = []
+   600→   600→    for tr in range(trials):
+   601→   601→        rng = np.random.default_rng([int(seed0), tr, 99])
+   602→   602→        for _ in range(30):
+   603→   603→            e = cands[int(rng.choice(len(cands), p=w))]
+   604→   604→            trees = build_trees(G, e)
+   605→   605→            if o in trees[(d, True)][1]:
+   606→   606→                break
+   607→   607→        else:
+   608→   608→            continue
+   609→   609→        rsu = place_rsus(G, e, P, trees)
+   610→   610→        hazards.append([int(e[0]), int(e[1])])
+   611→   611→        for m in info_modes:
+   612→   612→            for s, lat in latencies.items():
+   613→   613→                results[f"{m} | {s}"].append(run_trial(G, m, lat, seed=int(seed0) * 1000 + tr,
+   614→   614→                                                       hazard=e, params=P, trees=trees, rsu=rsu))
+   615→   615→        if verbose:
+   616→   616→            r0 = results[f"{info_modes[-1]} | {list(latencies)[0]}"][-1]
+   617→   617→            print(f"    trial {tr + 1}/{trials}: hazard edge {e}, {r0['civilians']} civilians, "
+   618→   618→                  f"RSUs alive {r0['rsu_alive']:.0%}")
+   619→   619→    summary = {}
+   620→   620→    for key, rs in results.items():
+   621→   621→        summary[key] = dict(
+   622→   622→            n=len(rs), arrival_min=mean_ci([r["arrival_min"] for r in rs]),
+   623→   623→            extra_min=mean_ci([r["extra_min"] for r in rs]),
+   624→   624→            informed_min=mean_ci([r["informed_min"] for r in rs]),
+   625→   625→            missed_pct=float(100 * np.mean([r["missed_junction"] for r in rs])) if rs else math.nan,
+   626→   626→            saw_block_pct=float(100 * np.mean([r["saw_block"] for r in rs])) if rs else math.nan,
+   627→   627→            trapped=mean_ci([r["trapped"] for r in rs]),
+   628→   628→            service_wait_s=mean_ci([r["service_wait_s"] for r in rs]),
+   629→   629→            unreachable=int(sum(r["unreachable"] for r in rs)))
+   630→   630→    scheds = list(latencies)
+   631→   631→    paired = {}
+   632→   632→    if len(scheds) >= 2:
+   633→   633→        a, b = scheds[0], scheds[1]
+   634→   634→        for m in info_modes:
+   635→   635→            ra, rb = results[f"{m} | {a}"], results[f"{m} | {b}"]
+   636→   636→            paired[m] = mean_ci([x["arrival_min"] - y["arrival_min"] for x, y in zip(rb, ra)])
+   637→   637→    if verbose:
+   638→   638→        print(f"    {'info mode | scheduling':<28} {'extra vs oracle (min)':>26} "
+   639→   639→              f"{'missed junction':>16} {'civilians trapped':>22}")
+   640→   640→        for key, s in summary.items():
+   641→   641→            print(f"    {key:<28} {fmt_ci(s['extra_min'], 1):>26} {s['missed_pct']:15.0f}% "
+   642→   642→                  f"{fmt_ci(s['trapped'], 1):>22}")
+   643→   643→        for m, ci in paired.items():
+   644→   644→            print(f"    paired arrival difference '{scheds[1]}' - '{scheds[0]}' under {m}: "
+   645→   645→                  f"{fmt_ci(ci, 2, ' min')}")
+   646→   646→    return dict(results=results, summary=summary, paired=paired, hazards=hazards, params=P,
+   647→   647→                analysis=info, hazard_prior="COOLR" if (coolr is not None and len(coolr)) else "uniform",
+   648→   648→                schedulings=scheds, info_modes=list(info_modes))
+   649→   649→
+   650→   650→
+   651→   651→# ----------------------------------------------------------------------
+   652→   652→# figures, serialisation
+   653→   653→# ----------------------------------------------------------------------
+   654→   654→def plot_map(G, outdir, hazard=None, coolr=None, fname="corridor_map.png", params=None):
+   655→   655→    P = dict(DEFAULTS)
+   656→   656→    P.update(params or {})
+   657→   657→    xy = _xy(G)
+   658→   658→    fig, ax = plt.subplots(figsize=(7.2, 7.2))
+   659→   659→    segs = [(xy[u], xy[v]) for u, v in G.edges()]
+   660→   660→    cols = [ROUTE_COLORS.get(G[u][v].get("route"), "#b0b0b0") for u, v in G.edges()]
+   661→   661→    lw = [1.8 if G[u][v].get("route") in ("valley", "hill", "access") + MAJOR else 0.5
+   662→   662→          for u, v in G.edges()]
+   663→   663→    ax.add_collection(LineCollection(segs, colors=cols, linewidths=lw, alpha=.8))
+   664→   664→    if "open_path" in G.graph:
+   665→   665→        p = G.graph["open_path"]
+   666→   666→        ax.plot([xy[n][0] for n in p], [xy[n][1] for n in p], color="#1f4e79", lw=3, alpha=.35,
+   667→   667→                label="open shortest route")
+   668→   668→    if coolr is not None and len(coolr):
+   669→   669→        ax.scatter(coolr[:, 0], coolr[:, 1], s=8, color="#e6a020", alpha=.6,
+   670→   670→                   label=f"COOLR landslide points ({len(coolr)})")
+   671→   671→    if hazard is not None:
+   672→   672→        trees = build_trees(G, hazard)
+   673→   673→        rp, alive = place_rsus(G, hazard, P, trees)
+   674→   674→        if len(rp):
+   675→   675→            ax.scatter(rp[alive, 0], rp[alive, 1], marker="^", s=40, color="#2e7d32",
+   676→   676→                       label="RSU (alive)")
+   677→   677→            ax.scatter(rp[~alive, 0], rp[~alive, 1], marker="x", s=50, color="k",
+   678→   678→                       label="RSU (destroyed)")
+   679→   679→        (ax0, ay0), (bx0, by0) = xy[hazard[0]], xy[hazard[1]]
+   680→   680→        ax.scatter([(ax0 + bx0) / 2], [(ay0 + by0) / 2], s=160, marker="X", color="#c0392b",
+   681→   681→                   zorder=5, label="blocked road")
+   682→   682→    for name, n in G.graph.get("named", {}).items():
+   683→   683→        ax.scatter([xy[n][0]], [xy[n][1]], s=30, color="k", zorder=6)
+   684→   684→        ax.annotate(name, xy[n], xytext=(5, 5), textcoords="offset points", fontsize=9)
+   685→   685→    jn = G.graph.get("junction_node")
+   686→   686→    if jn is not None:
+   687→   687→        ax.scatter([xy[jn][0]], [xy[jn][1]], s=120, facecolors="none", edgecolors="#c0392b",
+   688→   688→                   lw=2, zorder=7, label="decision junction")
+   689→   689→    ax.set_aspect("equal")
+   690→   690→    ax.autoscale()
+   691→   691→    ax.set_xlabel("east (m)"); ax.set_ylabel("north (m)")
+   692→   692→    ax.set_title(f"N1 corridor -- {G.graph.get('source', '')}", fontsize=9)
+   693→   693→    ax.legend(fontsize=7, loc="best")
+   694→   694→    ax.grid(alpha=.2)
+   695→   695→    os.makedirs(outdir, exist_ok=True)
+   696→   696→    path = os.path.join(outdir, fname)
+   697→   697→    fig.savefig(path, dpi=140, bbox_inches="tight")
+   698→   698→    plt.close(fig)
+   699→   699→    return path
+   700→   700→
+   701→   701→
+   702→   702→def plot_experiment(exp, outdir, fname="n1_corridor.png"):
+   703→   703→    S, modes, scheds = exp["summary"], exp["info_modes"], exp["schedulings"]
+   704→   704→    pal = ["#1f4e79", "#e6a020", "#2e7d32", "#c0392b"]
+   705→   705→    fig, ax = plt.subplots(1, 3, figsize=(17, 4.5))
+   706→   706→    x = np.arange(len(modes))
+   707→   707→    wdt = 0.8 / max(len(scheds), 1)
+   708→   708→    for j, s in enumerate(scheds):
+   709→   709→        cis = [S[f"{m} | {s}"]["extra_min"] for m in modes]
+   710→   710→        ax[0].bar(x + (j - (len(scheds) - 1) / 2) * wdt, [c[0] for c in cis], wdt,
+   711→   711→                  yerr=[0 if not np.isfinite(c[1]) else c[1] for c in cis], capsize=3,
+   712→   712→                  color=pal[j % 4], label=s)
+   713→   713→        ax[1].bar(x + (j - (len(scheds) - 1) / 2) * wdt, [S[f"{m} | {s}"]["missed_pct"] for m in modes],
+   714→   714→                  wdt, color=pal[j % 4], label=s)
+   715→   715→    for a_ in ax[:2]:
+   716→   716→        a_.set_xticks(x); a_.set_xticklabels(modes); a_.grid(alpha=.3, axis="y"); a_.legend(fontsize=8)
+   717→   717→    ax[0].set_ylabel("ambulance delay vs. oracle (min)")
+   718→   718→    ax[0].set_title("N1(d) extra arrival time from late warning")
+   719→   719→    ax[1].set_ylabel("ambulance passed the junction uninformed (%)")
+   720→   720→    ax[1].set_title("N1(e) missed the decision point")
+   721→   721→    for i, m in enumerate(modes):
+   722→   722→        rs = exp["results"][f"{m} | {scheds[0]}"]
+   723→   723→        if not rs:
+   724→   724→            continue
+   725→   725→        L = min(len(r["cov_f"]) for r in rs)
+   726→   726→        if L == 0:
+   727→   727→            continue
+   728→   728→        C = np.array([r["cov_f"][:L] for r in rs], dtype=float)
+   729→   729→        tt = np.array(rs[0]["cov_t"][:L]) / 60
+   730→   730→        ax[2].plot(tt, np.nanmean(C, 0) * 100, color=pal[i % 4], lw=2, label=m)
+   731→   731→    ax[2].set_xlabel("minutes after the blockage")
+   732→   732→    ax[2].set_ylabel("civilian vehicles informed (%)")
+   733→   733→    ax[2].set_title(f"N1(f) warning coverage ({scheds[0]})")
+   734→   734→    ax[2].grid(alpha=.3); ax[2].legend(fontsize=8)
+   735→   735→    os.makedirs(outdir, exist_ok=True)
+   736→   736→    path = os.path.join(outdir, fname)
+   737→   737→    fig.savefig(path, dpi=140, bbox_inches="tight")
+   738→   738→    plt.close(fig)
+   739→   739→    return path
+   740→   740→
+   741→   741→
+   742→   742→def graph_to_json(G):
+   743→   743→    keep = ("source", "origin", "junction", "dest", "named", "lat0", "lon0", "junction_node")
+   744→   744→    return dict(graph={k: G.graph[k] for k in keep if k in G.graph},
+   745→   745→                nodes=[[int(n), float(G.nodes[n]["x"]), float(G.nodes[n]["y"]),
+   746→   746→                        G.nodes[n].get("name", "")] for n in G.nodes],
+   747→   747→                edges=[[int(u), int(v), float(dd["length"]), float(dd["speed"]), dd.get("route", "")]
+   748→   748→                       for u, v, dd in G.edges(data=True)])
+   749→   749→
+   750→   750→
+   751→   751→def graph_from_json(js):
+   752→   752→    G = nx.Graph()
+   753→   753→    for n, x, y, name in js["nodes"]:
+   754→   754→        G.add_node(int(n), x=x, y=y, name=name)
+   755→   755→    for u, v, L, spd, route in js["edges"]:
+   756→   756→        G.add_edge(int(u), int(v), length=L, speed=spd, tt=L / spd, route=route)
+   757→   757→    G.graph.update(js["graph"])
+   758→   758→    G.graph["named"] = {k: int(v) for k, v in G.graph.get("named", {}).items()}
+   759→   759→    for k in ("origin", "junction", "dest", "junction_node"):
+   760→   760→        if k in G.graph and G.graph[k] is not None:
+   761→   761→            G.graph[k] = int(G.graph[k])
+   762→   762→    analyse(G)
+   763→   763→    return G
+   764→   764→
+   765→   765→
+   766→   766→def describe(G, info):
+   767→   767→    nm = G.graph.get("named", {})
+   768→   768→    lines = [f"corridor graph : {info.get('chosen', '?')} -- {G.graph.get('source', '')}",
+   769→   769→             f"why            : {info.get('reason', '')}",
+   770→   770→             f"size           : {info['n_nodes']} nodes, {info['n_edges']} edges",
+   771→   771→             f"open route     : {info['open_km']:.1f} km, {info['open_min']:.0f} min "
+   772→   772→             f"(origin {G.nodes[G.graph['origin']].get('name', '')} -> "
+   773→   773→             f"{G.nodes[G.graph['dest']].get('name', '')})"]
+   774→   774→    if info.get("ok"):
+   775→   775→        lines.append(f"detour         : exists for {info['frac_with_detour']:.0%} of tested hazard "
+   776→   776→                     f"positions; median detour {info['detour_min']:.0f} min")
+   777→   777→        lines.append(f"decision point : node {info['junction_node']} "
+   778→   778→                     f"'{info.get('junction_name', '')}', {info['junction_km']:.1f} km from origin")
+   779→   779→    if "snap_m" in G.graph:
+   780→   780→        lines.append("place snapping : " + ", ".join(f"{k} {v:.0f} m" for k, v in G.graph["snap_m"].items()))
+   781→   781→    lines.append("named places   : " + ", ".join(nm))
+   782→   782→    return "\n".join(lines)
+   783→   783→
