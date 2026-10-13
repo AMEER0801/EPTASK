@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root {
+    --c-bg: #f5f5f5;
+    --c-accent: #8d7325;
+    --c-mid: #524a30;
+    --c-text: #1e1d1b;
+    --c-muted: #88857e;
+    --c-border: #a89f85;
+  }
+  html, body { margin: 0; padding: 0; width: 794px; height: 1123px; background: var(--c-bg); color: var(--c-text); font-family: 'Inter', sans-serif; }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+    body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.18); }
+  }
+  .cover { width: 794px; height: 1123px; position: relative; border: none; outline: none; box-shadow: none; }
+
+  /* Layer 1 - background grid (2% opacity) */
+  .layer1 { position: absolute; inset: 0; overflow: hidden; z-index: 1;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(82,74,48,0.05) 0 0.5px, transparent 0.5px 50px),
+      repeating-linear-gradient(90deg, rgba(82,74,48,0.05) 0 0.5px, transparent 0.5px 50px);
+  }
+
+  /* Layer 2 - structure: ultra-thick left anchor line */
+  .layer2 { position: absolute; inset: 0; z-index: 2; }
+  .anchor-line { position: absolute; left: 95px; top: 112px; bottom: 112px; width: 6px; background: var(--c-mid); }
+
+  /* Layer 3 - content (left edge = line + 2U gap = 95 + 80 = 175px) */
+  .layer3 { position: absolute; inset: 0; z-index: 3; }
+  .kicker { position: absolute; left: 175px; top: 168px; font-size: 16px; font-weight: 400;
+    letter-spacing: 4px; text-transform: uppercase; color: var(--c-text); opacity: 0.6; }
+  .title { position: absolute; left: 175px; top: 300px; font-size: 60px; font-weight: 900;
+    line-height: 1.15; color: var(--c-text); max-width: 540px; letter-spacing: -1px; }
+  .version { position: absolute; left: 175px; top: 452px; font-size: 60px; font-weight: 900;
+    line-height: 1.1; color: var(--c-accent); letter-spacing: -1px; }
+  .summary { position: absolute; left: 175px; top: 585px; font-size: 17px; font-weight: 400;
+    line-height: 1.6; color: var(--c-text); opacity: 0.85; max-width: 470px; }
+  .meta { position: absolute; left: 175px; top: 810px; font-size: 18px; font-weight: 400;
+    line-height: 1.7; color: var(--c-text); opacity: 0.85; }
+  .meta .label { display: inline-block; min-width: 128px; color: var(--c-muted); }
+  .footer { position: absolute; left: 175px; right: 76px; bottom: 132px; display: flex;
+    justify-content: space-between; font-size: 15px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--c-text); opacity: 0.6; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="layer1"></div>
+    <div class="layer2"><div class="anchor-line"></div></div>
+    <div class="layer3">
+      <div class="kicker">Laptop Setup &amp; Operations Guide</div>
+      <div class="title">EPtask<br>Ops Console</div>
+      <div class="version">v2.0</div>
+      <div class="summary">
+        Install and run the complete live application on your own machine: the Next.js operations
+        console and the FastAPI service that executes the EPtask V7.1 notebook on every request —
+        with real OpenStreetMap roads, side-by-side warning-network comparison, persistent job
+        history and optional API-key authentication.
+      </div>
+      <div class="meta">
+        <div><span class="label">Applies to</span> EPtask-Ops-Console-v2.zip</div>
+        <div><span class="label">Stack</span> Python 3.10 - 3.12 · Node.js 20+ · SQLite</div>
+        <div><span class="label">Date</span> October 2026</div>
+      </div>
+      <div class="footer"><span>Setup Guide</span><span>v2.0</span></div>
+    </div>
+  </div>
+</body>
+</html>
